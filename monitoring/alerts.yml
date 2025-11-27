@@ -1,0 +1,20 @@
+groups:
+  - name: textclf_alerts
+    rules:
+      - alert: HighPredictLatency
+        expr: histogram_quantile(0.95, sum(rate(pred_latency_seconds_bucket[5m])) by (le)) > 0.75
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 prediction latency high"
+          description: "p95 pred latency > 750ms for 10m"
+
+      - alert: PredictionErrorsSpiking
+        expr: rate(pred_request_errors_total[5m]) / (rate(pred_requests_total[5m]) + 1e-9) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "prediction error rate > 5%"
+          description: "error rate exceeded 5% for 10m"

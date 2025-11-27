@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "textclf_api"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["textclf-api:8000"]  # IMPORTANT: use your Compose *service* name
+
+remote_write:
+  - url: ${GC_PROM_URL}
+    basic_auth:
+      username: ${GC_PROM_USER}
+      password: ${GC_PROM_TOKEN}

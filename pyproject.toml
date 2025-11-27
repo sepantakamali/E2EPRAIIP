@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "textclf"
+version = "0.1.0"
+description = "A tiny classifier demo project"
+requires-python = ">=3.9"
+dependencies = [
+    "scikit-learn",
+    "numpy",
+    "scipy",
+    "joblib",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest", "mypy", "black", "ruff",
+    "fastapi", "uvicorn[standard]", "pydantic",
+    "httpx", "gunicorn", "prometheus-client",
+    "slowapi",
+]

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+logs/
+artifacts/      # we’ll mount this at runtime instead of baking it
+*.egg-info/
+tests/

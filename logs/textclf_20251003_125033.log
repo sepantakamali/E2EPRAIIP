@@ -1,0 +1,14 @@
+2025-10-03 13:50:33,614 | INFO | textclf | Using categories: ['rec.sport.hockey', 'talk.politics.mideast']
+2025-10-03 13:50:34,714 | INFO | textclf | Accuracy: 0.9381
+2025-10-03 13:50:34,714 | INFO | textclf | 
+              precision    recall  f1-score   support
+
+           0      0.923     0.960     0.941       200
+           1      0.956     0.915     0.935       188
+
+    accuracy                          0.938       388
+   macro avg      0.939     0.937     0.938       388
+weighted avg      0.939     0.938     0.938       388
+
+2025-10-03 13:50:34,715 | INFO | textclf | Sample -> 'The team played a great game last night and scored twice.' => class 0
+2025-10-03 13:50:34,780 | INFO | textclf | Saved model to: artifacts/model_20251003_125034-demo.joblib

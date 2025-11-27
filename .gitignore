@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual envs
+.venv/
+venv/
+
+# Build metadata
+*.egg-info/
+
+# Runlog
+*.jsonl
+
+# Local secrets
+.env
+.env*
