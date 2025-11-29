@@ -48,6 +48,22 @@ Modern, production-style text classification service with:
   - Generated Python client (e.g. `textclf_client/`) for programmatic use  
   - Example usage in `client_demo.py`
 
+## Production deployment (Render)
+
+A public demo deployment is available on Render:
+
+- Base URL: `https://<your-service-name>.onrender.com`
+- Health check: `GET /health`
+- OpenAPI docs: `GET /docs`
+- Metrics: `GET /metrics` (if exposed)
+
+Example request:
+
+```bash
+curl -X POST "https://<your-service-name>.onrender.com/predict?model=latest" \
+  -H "Content-Type: application/json" \
+  -d '{"texts":["Hockey fans were ecstatic after the playoff win."],"return_prob":false}'
+
 ---
 
 ## Tech Stack
