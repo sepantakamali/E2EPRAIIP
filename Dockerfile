@@ -23,10 +23,17 @@ ARG MODEL_POINTER=latest
 ENV MODEL_POINTER=${MODEL_POINTER}
 
 EXPOSE 8000
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", \
-     "--workers", "2", "--threads", "4", "--timeout", "60", \
-     "--bind", "0.0.0.0:8000", "textclf.api:app"]
 
-# create non-root user and switch
+# Create non-root user
 RUN useradd -u 10001 -m appuser
+
+# Ensure /app and artifacts are owned by appuser
+RUN mkdir -p /app/artifacts && chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
+
+# Tell textclf where artifacts live
+ENV ARTIFACTS_DIR=/app/artifacts
+
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "textclf.api:app", "-b", "0.0.0.0:8000"]

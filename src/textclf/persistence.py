@@ -1,6 +1,7 @@
 # textclf.persistence — model persistence, pointers, and run logging
 from __future__ import annotations
 
+import os
 import dataclasses as _dc
 import hashlib
 import json
@@ -14,8 +15,7 @@ from typing import Any, Tuple
 import joblib
 
 # ---- Artifact locations -----------------------------------------------------
-ARTIFACTS_DIR: Path = Path("artifacts")
-ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+ARTIFACTS_DIR: Path = Path(os.getenv("ARTIFACTS_DIR", "artifacts"))
 
 LATEST_PATH: Path = ARTIFACTS_DIR / "model_latest.joblib"
 STABLE_PATH: Path = ARTIFACTS_DIR / "model_stable.joblib"
