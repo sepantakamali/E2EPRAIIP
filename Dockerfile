@@ -15,8 +15,7 @@ COPY src ./src
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir ".[dev]"
 
-# Optional: if you want a default model baked in, uncomment:
-# COPY artifacts ./artifacts
+COPY artifacts ./artifacts
 
 # Add under your build args
 ARG MODEL_POINTER=latest
