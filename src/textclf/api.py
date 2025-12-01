@@ -113,7 +113,9 @@ async def lifespan(app: FastAPI):
 MAX_TEXTS = int(os.getenv("MAX_TEXTS", "64"))
 MAX_TEXT_LEN = int(os.getenv("MAX_TEXT_LEN", "2000"))
 
-show_docs = os.getenv("SHOW_DOCS", "1") == "1"
+raw_show_docs = os.getenv("SHOW_DOCS", "true")
+show_docs = raw_show_docs.strip().lower() in {"1", "true", "yes", "on"}
+log.info("SHOW_DOCS env=%r -> show_docs=%s", raw_show_docs, show_docs)
 
 app = FastAPI(
     title="textclf API",
@@ -223,7 +225,6 @@ def whoami():
     }
 
 @limit_if_enabled_dynamic()
-@app.post("/predict", response_model=PredictResponse)
 @app.post("/predict", response_model=PredictResponse)
 def predict(
     request: Request,   # REQUIRED for SlowAPI
