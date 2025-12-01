@@ -45,14 +45,17 @@ Modern, production-style text classification service with:
 
 - **Client SDK**  
   - OpenAPI schema exposed at `/openapi.json`  
-  - Generated Python client (e.g. `textclf_client/`) for programmatic use  
+  - Generated Python client in `textclf_client/` for programmatic use  
+  - Install locally with: `pip install -e textclf_client`
   - Example usage in `client_demo.py`
 
 ## Production deployment (Render)
 
 A public demo deployment is available on Render:
 
-- Base URL: `https://<your-service-name>.onrender.com`
+- Current demo: https://e2epraiip.onrender.com
+
+- Base URL: `https://e2epraiip.onrender.com`
 - Health check: `GET /health`
 - OpenAPI docs: `GET /docs`
 - Metrics: `GET /metrics` (if exposed)
@@ -60,9 +63,10 @@ A public demo deployment is available on Render:
 Example request:
 
 ```bash
-curl -X POST "https://<your-service-name>.onrender.com/predict?model=latest" \
+curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
   -H "Content-Type: application/json" \
   -d '{"texts":["Hockey fans were ecstatic after the playoff win."],"return_prob":false}'
+```
 
 ---
 
@@ -71,12 +75,12 @@ curl -X POST "https://<your-service-name>.onrender.com/predict?model=latest" \
 - **Language**: Python 3.11+
 - **Web Framework**: FastAPI
 - **Validation**: Pydantic v2
-- **Model Persistence**: `joblib`
+- **Model Persistence**: joblib
 - **Containerization**: Docker
 - **Rate Limiting**: SlowAPI
 - **Monitoring**: Prometheus, optional Grafana Cloud
-- **Testing**: `pytest`
-- **Typing**: `mypy`
+- **Testing**: pytest
+- **Typing**: mypy
 
 ---
 

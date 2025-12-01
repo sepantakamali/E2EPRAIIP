@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, Any
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
@@ -25,6 +25,8 @@ from slowapi.errors import RateLimitExceeded
 from typing import cast
 
 from limits.storage import RedisStorage
+
+from importlib.metadata import version as pkg_version
 
 PREDICTIONS = Counter("pred_requests_total", "Total prediction requests")
 PRED_LATENCY = Histogram(
@@ -174,8 +176,13 @@ except Exception:
 
 # ---------- Endpoints ----------
 @app.get("/health")
-def health() -> dict:
-    return {"status": "ok"}
+def health() -> dict[str, Any]:
+    st = STATE["state"]
+    return {
+        "status": "ok",
+        "version": pkg_version("textclf"),
+        "model": st.dict() if st else None,
+    }
 
 @app.get("/version")
 def version() -> dict:
