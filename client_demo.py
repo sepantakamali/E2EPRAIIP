@@ -5,7 +5,7 @@ from textclf_client.models import PredictRequest
 def main() -> None:
     # If you want to test locally instead, use "http://localhost:8000"
     client = Client(
-        base_url="https://e2epraiip.onrender.com",
+        base_url="https://textclf-api-manual.onrender.com",
         timeout=10.0,
         # This keeps errors as "None" instead of raising — we'll inspect manually
         raise_on_unexpected_status=False,

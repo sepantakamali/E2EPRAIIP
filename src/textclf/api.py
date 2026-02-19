@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .__init__ import  __version__
+
 import logging
 import os
 import time
@@ -32,6 +34,7 @@ PREDICTIONS = Counter("pred_requests_total", "Total prediction requests")
 PRED_LATENCY = Histogram(
     "pred_latency_seconds",
     "Prediction latency (seconds)",
+    # Checking more important percentiles
     buckets=(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0)
 )
 PRED_ERRORS = Counter("pred_request_errors_total", "Total prediction errors")
@@ -113,13 +116,25 @@ async def lifespan(app: FastAPI):
 MAX_TEXTS = int(os.getenv("MAX_TEXTS", "64"))
 MAX_TEXT_LEN = int(os.getenv("MAX_TEXT_LEN", "2000"))
 
-raw_show_docs = os.getenv("SHOW_DOCS", "true")
-show_docs = raw_show_docs.strip().lower() in {"1", "true", "yes", "on"}
-log.info("SHOW_DOCS env=%r -> show_docs=%s", raw_show_docs, show_docs)
+ENV = os.getenv("ENV", "local").lower()    # local | dev | prod
+# ENV-based default
+default_show_docs = "1" if ENV == "local" else "0"
+# Explicit override
+override_show_docs = os.getenv("SHOW_DOCS")  # No default since we are overriding
+
+if override_show_docs is None:
+    show_docs = default_show_docs
+else:
+    show_docs = override_show_docs.strip().lower() in {"1", "true", "yes", "on"}
+
+log.info(
+    "ENV=%s SHOW_DOCS=%r -> show_docs=%s",
+    ENV, override_show_docs, show_docs
+    )
 
 app = FastAPI(
     title="textclf API",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
     docs_url="/docs" if show_docs else None,
     redoc_url=None,

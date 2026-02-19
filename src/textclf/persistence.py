@@ -143,6 +143,8 @@ def load_model(path: Path | str) -> Tuple[Any, ModelMetadata]:
     """Load a persisted pipeline + metadata from a joblib artifact."""
 
     p = Path(path)
+    # Common user mistake: passing a directory instead of artifact address
+    # Solution: set pointer to the 'latest's' path
     if p.is_dir():
         p = LATEST_PATH
     if not p.exists():
