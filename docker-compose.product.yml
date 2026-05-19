@@ -1,0 +1,78 @@
+
+
+services:
+  textclf-api:
+    build: .
+    image: textclf-api:product
+    container_name: textclf-api
+    env_file:
+      - .env
+    environment:
+      MODEL_POINTER: stable
+      LOG_LEVEL: INFO
+      RATE_LIMIT_ENABLED: "1"
+      RATE_LIMIT_PREDICT: 100/second
+      SHOW_DOCS: "0"
+      AUTH_ENABLED: "true"
+      AUTH_TOKENS_FILE: /run/secrets/textclf_tokens
+      # SLOWAPI_STORAGE_URI: redis://redis:6379/0
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - ./logs:/app/logs
+    secrets:
+      - textclf_tokens
+    expose:
+      - "8000"
+    networks:
+      - app
+      - observability
+    command: >
+      uvicorn textclf.api:app --host 0.0.0.0 --port 8000
+
+  ui:
+    build: .
+    image: textclf-ui:prod
+    container_name: textclf-ui
+    env_file:
+      - .env
+    environment:
+      API_BASE_URL: http://textclf-api:8000
+      API_BEARER_TOKEN_FILE: /run/secrets/ui_api_token
+    secrets:
+      - ui_api_token
+    ports:
+      - "8501:8501"
+    networks:
+      - app
+    command: >
+      streamlit run ui/app.py --server.address 0.0.0.0 --server.port 8501
+    depends_on:
+      - textclf-api
+
+  metrics-proxy:
+    image: nginx:1.27-alpine
+    container_name: metrics-proxy
+    expose:
+      - "8080"
+    volumes:
+      - ./nginx/metrics.conf:/etc/nginx/conf.d/default.conf:ro
+    secrets:
+      - metrics_htpasswd
+    networks:
+      - observability
+    depends_on:
+      - textclf-api
+
+networks:
+  app:
+    name: textclf_app
+  observability:
+    name: textclf_observability
+
+secrets:
+  textclf_tokens:
+    file: ${AUTH_TOKENS_FILE}
+  ui_api_token:
+    file: ${API_BEARER_TOKEN_FILE}
+  metrics_htpasswd:
+    file: ${METRICS_HTPASSWD_FILE}

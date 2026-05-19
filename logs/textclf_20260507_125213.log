@@ -1,0 +1,25 @@
+2026-05-07T13:52:13+0100 | INFO | textclf.api | ENV=local SHOW_DOCS='True' -> show_docs=True
+2026-05-07T13:52:13+0100 | INFO | textclf.api | Loaded model pointer=latest path=artifacts/model_20260313_175256-experiment5.joblib model_id=2026-03-13T17:52:56Z_b11674fc created_at=2026-03-13T17:52:56Z software_version=0.1.0 release_tag=unreleased published=True
+2026-05-07T13:52:15+0100 | INFO | textclf.api | HTTP request completed method=GET path=/health status_code=200 duration_ms=1.94 request_id=b0c4ae6f-da2a-486a-aea5-45e929d46225 request_id_source=api
+2026-05-07T13:52:15+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=9b4117fb-846e-4bdb-b25f-2f4239adb170
+2026-05-07T13:52:15+0100 | INFO | textclf.api | HTTP request completed method=GET path=/models status_code=200 duration_ms=477.38 request_id=9b4117fb-846e-4bdb-b25f-2f4239adb170 request_id_source=api
+2026-05-07T13:52:15+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=1b722950-fc4e-4c03-85ae-f177d50511fa
+2026-05-07T13:52:15+0100 | INFO | textclf.api | HTTP request completed method=GET path=/version status_code=200 duration_ms=19.06 request_id=1b722950-fc4e-4c03-85ae-f177d50511fa request_id_source=api
+2026-05-07T13:52:15+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=c6b08b1f-1b2c-4f3b-9e70-5d1f6890c094
+2026-05-07T13:52:15+0100 | INFO | textclf.api | HTTP request completed method=GET path=/version status_code=200 duration_ms=69.65 request_id=c6b08b1f-1b2c-4f3b-9e70-5d1f6890c094 request_id_source=api
+2026-05-07T13:53:27+0100 | INFO | textclf.api | HTTP request completed method=GET path=/health status_code=200 duration_ms=4.01 request_id=1840fc66-1b8d-4f29-83b9-e3af71befbc5 request_id_source=api
+2026-05-07T13:53:27+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=1c6f0220-0dfe-46c3-a9ae-825405bbe268
+2026-05-07T13:53:28+0100 | INFO | textclf.api | HTTP request completed method=GET path=/models status_code=200 duration_ms=454.06 request_id=1c6f0220-0dfe-46c3-a9ae-825405bbe268 request_id_source=api
+2026-05-07T13:53:28+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=a6e8866e-c48c-4058-87a6-a90103b4d4c9
+2026-05-07T13:53:28+0100 | INFO | textclf.api | HTTP request completed method=GET path=/version status_code=200 duration_ms=15.32 request_id=a6e8866e-c48c-4058-87a6-a90103b4d4c9 request_id_source=api
+2026-05-07T13:53:28+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=4c6afea0-ae44-40e1-a7d1-f7212fd3e559
+2026-05-07T13:53:28+0100 | INFO | textclf.api | HTTP request completed method=GET path=/version status_code=200 duration_ms=80.17 request_id=4c6afea0-ae44-40e1-a7d1-f7212fd3e559 request_id_source=api
+2026-05-07T13:53:29+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=6970db6f-7dfa-4ccc-b0b2-523ab1b18623
+2026-05-07T13:53:29+0100 | INFO | textclf.api | Loaded model pointer=stable path=artifacts/model_20251006_143539-check.joblib model_id=2025-10-06T14:35:39Z_1288d2c5 created_at=2025-10-06T14:35:39Z software_version=0.1.0 release_tag=v1.0 published=False
+2026-05-07T13:53:29+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=6970db6f-7dfa-4ccc-b0b2-523ab1b18623
+2026-05-07T13:53:29+0100 | INFO | textclf.api | HTTP request completed method=POST path=/predict status_code=200 duration_ms=33.38 request_id=6970db6f-7dfa-4ccc-b0b2-523ab1b18623 request_id_source=api
+2026-05-07T13:53:34+0100 | INFO | textclf.api | HTTP request completed method=GET path=/docs status_code=200 duration_ms=1.10 request_id=ba8ac1dd-0648-480b-81f7-72a8f89a155c request_id_source=api
+2026-05-07T13:53:34+0100 | INFO | textclf.api | HTTP request completed method=GET path=/openapi.json status_code=200 duration_ms=9.30 request_id=e9102d45-4ea7-461d-9588-8405098fdbe7 request_id_source=api
+2026-05-07T13:53:54+0100 | INFO | textclf.api | HTTP request completed method=GET path=/health status_code=200 duration_ms=1.63 request_id=20032c09-af58-430d-878b-002f5608b08b request_id_source=api
+2026-05-07T13:54:12+0100 | INFO | textclf.api | HTTP request completed method=GET path=/health status_code=200 duration_ms=1.55 request_id=34f97a5a-d42a-40b4-8ff0-5e4cd52587f1 request_id_source=api
+2026-05-07T13:54:28+0100 | INFO | textclf.api | HTTP request completed method=GET path=/ready status_code=200 duration_ms=0.86 request_id=816201ae-ff99-4ab7-aad6-8c599b7dc94f request_id_source=api

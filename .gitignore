@@ -16,4 +16,9 @@ venv/
 .env
 .env*
 
+# Secrets
+secrets/
+practice_sprint_secrets/
+monitoring/prometheus.yml
+
 !.env.example

@@ -12,6 +12,69 @@ Modern, production-style text classification service with:
 
 ---
 
+## Architecture
+
+This system implements a production-style ML inference pipeline covering model lifecycle, deployment, and observability.
+
+### Full Architecture
+
+```mermaid
+flowchart TD
+    A[Training Pipeline] --> B[Build Trained Text Classifier]
+    B --> C[Save Canonical Artifact<br/>artifacts/model_*.joblib]
+
+    C --> D[Artifact Metadata<br/>model_id<br/>software_version<br/>created_at<br/>sha256<br/>published<br/>release_tag]
+
+    C --> E[Pointer Management]
+    E --> F[pointers.json]
+    F --> F1[latest -> newest artifact]
+    F --> F2[stable -> promoted artifact]
+
+    C --> G[Publish / Release]
+    G --> G1[Set published=True]
+    G --> G2[Optional release_tag<br/>vMAJOR.MINOR]
+
+    C --> H[Model Registry]
+    H --> H1[/models endpoint]
+    H --> H2[Read current artifact metadata]
+
+    F --> I[FastAPI Inference Service]
+    H --> I
+    D --> I
+
+    I --> I1[/predict]
+    I --> I2[/version]
+    I --> I3[/health]
+    I --> I4[/models]
+    I --> I5[/metrics]
+
+    I --> J[Prometheus]
+    J --> K[Grafana]
+
+    I --> L[Streamlit Inference Console]
+    L --> L1[Select stable / latest / published model]
+    L --> L2[Single text / batch / file upload]
+    L --> L3[Prediction results + raw JSON]
+    L --> L4[Request history + CSV export]
+    L --> L5[Health / Docs / Metrics links]
+```
+
+### Simplified Flow
+
+```mermaid
+flowchart LR
+    A[Train Model] --> B[Save Artifact]
+    B --> C[pointers.json<br/>stable / latest]
+    B --> D[Artifact Metadata<br/>model_id, release_tag]
+    B --> E[Registry /models]
+    C --> F[FastAPI API]
+    D --> F
+    E --> F
+    F --> G[Streamlit UI]
+    F --> H[Prometheus]
+    H --> I[Grafana]
+```
+
 ## Features
 
 - **FastAPI inference microservice**  

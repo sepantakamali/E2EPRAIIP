@@ -1,0 +1,29 @@
+2026-05-07T13:31:11+0100 | INFO | textclf.api | ENV=local SHOW_DOCS='True' -> show_docs=True
+2026-05-07T13:31:11+0100 | INFO | textclf.api | Loaded model pointer=latest path=artifacts/model_20260313_175256-experiment5.joblib model_id=2026-03-13T17:52:56Z_b11674fc created_at=2026-03-13T17:52:56Z software_version=0.1.0 release_tag=unreleased published=True
+2026-05-07T13:34:18+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=d04511e2-7048-4585-b2c5-08247e7b8cb0
+2026-05-07T13:34:19+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=9b5f91bf-27cf-411c-adc2-f3bb6103ad4f
+2026-05-07T13:34:19+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=f9395e3d-d110-4d0e-b607-09962a3295e1
+2026-05-07T13:34:22+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=5df0397a-ee96-4b8f-a445-163f8e83bfb7
+2026-05-07T13:34:22+0100 | INFO | textclf.api | Loaded model pointer=stable path=artifacts/model_20251006_143539-check.joblib model_id=2025-10-06T14:35:39Z_1288d2c5 created_at=2025-10-06T14:35:39Z software_version=0.1.0 release_tag=v1.0 published=False
+2026-05-07T13:34:22+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=5df0397a-ee96-4b8f-a445-163f8e83bfb7
+2026-05-07T13:35:25+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=e0dcebbf-cd2c-47e2-b7a2-b7f5130fa992
+2026-05-07T13:35:26+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=c56e36c2-d29a-4be9-9c3b-24680158a202
+2026-05-07T13:35:26+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=8a3351fa-0532-4c9e-ba3b-15f804472e54
+2026-05-07T13:35:28+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=99f8240b-81d5-42f0-b31a-c940ef3a2f4f
+2026-05-07T13:35:29+0100 | INFO | textclf.api | Loaded model pointer=2026-03-07T16:40:01Z_0ce8a609 path=artifacts/model_20260307_164001.joblib model_id=2026-03-07T16:40:01Z_0ce8a609 created_at=2026-03-07T16:40:01Z software_version=0.1.0 release_tag=v1.1 published=True
+2026-05-07T13:35:29+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=99f8240b-81d5-42f0-b31a-c940ef3a2f4f
+2026-05-07T13:38:38+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=ce3e4197-98e4-4837-b946-3ba17cd50516
+2026-05-07T13:38:39+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=2f1aa923-04eb-4a82-92fb-81fe85db834a
+2026-05-07T13:38:39+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=4b72482c-602d-4e2b-923f-ce5b5e3b13fd
+2026-05-07T13:38:39+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=b8402111-ea0c-4dbb-a12a-3390ca3accb6
+2026-05-07T13:38:39+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=b8402111-ea0c-4dbb-a12a-3390ca3accb6
+2026-05-07T13:47:01+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=bc2fde39-cc3c-4cc0-a87f-22ed0e7a8094
+2026-05-07T13:47:02+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=ca5d9112-a700-40d9-ab08-2983734210c8
+2026-05-07T13:47:02+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=175c19a6-5683-408b-8f0c-6b55cec2a6dc
+2026-05-07T13:47:02+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=c0fb7ca9-ec56-46a7-8627-80d26609eea3
+2026-05-07T13:47:02+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=c0fb7ca9-ec56-46a7-8627-80d26609eea3
+2026-05-07T13:51:04+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=3499e63c-5b53-4332-9a59-44e4849a5f60
+2026-05-07T13:51:05+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=d93e0c1e-907a-4ada-b714-79653806a480
+2026-05-07T13:51:05+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=81a33c78-b32d-469e-9321-80a34975a908
+2026-05-07T13:51:05+0100 | INFO | textclf.api | Authentication succeeded token_id=ui-service-20260424164940 client_id=ui-service request_id=7b43aa08-f0a3-4bf5-8c05-abdbe3acd08b
+2026-05-07T13:51:05+0100 | INFO | textclf.api | Prediction succeeded token_id=ui-service-20260424164940 client_id=ui-service texts=1 request_id=7b43aa08-f0a3-4bf5-8c05-abdbe3acd08b

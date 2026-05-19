@@ -2,14 +2,20 @@ global:
   scrape_interval: 5s
   evaluation_interval: 15s
 
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
-  - job_name: "textclf_api"
+  - job_name: textclf-api
     metrics_path: /metrics
     static_configs:
-      - targets: ["textclf-api:8000"]  # IMPORTANT: use your Compose *service* name
+      - targets: ["metrics-proxy:8080"]
+    basic_auth:
+      username: prometheus
+      password_file: /run/secrets/prometheus_metrics_password
 
 remote_write:
-  - url: ${GC_PROM_URL}
+  - url: "https://prometheus-prod-55-prod-gb-south-1.grafana.net/api/prom/push"
     basic_auth:
-      username: ${GC_PROM_USER}
-      password: ${GC_PROM_TOKEN}
+      username: "2735055"
+      password_file: /run/secrets/gc_prom_password

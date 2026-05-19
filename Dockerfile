@@ -10,6 +10,8 @@ WORKDIR /app
 # Copy project metadata and source (source MUST be present to build the wheel)
 COPY pyproject.toml ./
 COPY src ./src
+COPY ui ./ui
+COPY img ./img
 
 # Install project (include API deps). For a slim image you can do just "." instead.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \

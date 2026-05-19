@@ -1,20 +1,47 @@
 groups:
-  - name: textclf_alerts
+  - name: textclf_api_alerts
     rules:
-      - alert: HighPredictLatency
-        expr: histogram_quantile(0.95, sum(rate(pred_latency_seconds_bucket[5m])) by (le)) > 0.75
-        for: 10m
+      - alert: TextclfApiMetricsTargetDown
+        expr: up{job="textclf-api"} == 0
+        for: 2m
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "p95 prediction latency high"
-          description: "p95 pred latency > 750ms for 10m"
+          summary: "textclf API metrics target is down"
+          description: "Prometheus cannot scrape the textclf API metrics target through metrics-proxy for more than 2 minutes. Check textclf-api, metrics-proxy, and Prometheus scrape authentication."
 
-      - alert: PredictionErrorsSpiking
-        expr: rate(pred_request_errors_total[5m]) / (rate(pred_requests_total[5m]) + 1e-9) > 0.05
+      - alert: TextclfPredictLatencyHigh
+        expr: >-
+          histogram_quantile(
+            0.95,
+            sum(rate(pred_latency_seconds_bucket{job="textclf-api"}[5m])) by (le)
+          ) > 0.75
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "prediction error rate > 5%"
-          description: "error rate exceeded 5% for 10m"
+          summary: "textclf prediction p95 latency is high"
+          description: "p95 prediction latency has been above 750ms for 10 minutes. Check model loading, CPU/memory pressure, and request volume."
+
+      - alert: TextclfPredictionErrorRateHigh
+        expr: >-
+          (
+            sum(rate(pred_request_errors_total{job="textclf-api"}[5m]))
+            /
+            clamp_min(sum(rate(pred_requests_total{job="textclf-api"}[5m])), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "textclf prediction error rate is high"
+          description: "Prediction error rate has been above 5% for 10 minutes. Check API logs with X-Request-ID correlation and recent model/artifact changes."
+
+      - alert: TextclfNoPredictionTraffic
+        expr: sum(rate(pred_requests_total{job="textclf-api"}[15m])) == 0
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "textclf API has no prediction traffic"
+          description: "No prediction requests have been observed for 30 minutes. This may be expected in development, but in deployment it can indicate UI/API routing or authentication issues."
