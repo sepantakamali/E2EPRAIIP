@@ -21,4 +21,7 @@ secrets/
 practice_sprint_secrets/
 monitoring/prometheus.yml
 
+# Logs
+logs/
+
 !.env.example
