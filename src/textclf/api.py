@@ -419,7 +419,7 @@ MAX_TEXT_LEN = int(os.getenv("MAX_TEXT_LEN", "2000"))
 
 ENV = os.getenv("ENV", "local").lower()    # local | dev | prod
 # ENV-based default
-default_show_docs = "1" if ENV == "local" else "0"
+default_show_docs = ENV == "local"
 # Explicit override
 override_show_docs = os.getenv("SHOW_DOCS")  # No default since we are overriding
 
