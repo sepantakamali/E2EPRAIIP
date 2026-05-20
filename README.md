@@ -21,9 +21,9 @@ This system implements a production-style ML inference pipeline covering model l
 ```mermaid
 flowchart TD
     A[Training Pipeline] --> B[Build Trained Text Classifier]
-    B --> C[Save Canonical Artifact<br/>artifacts/model_*.joblib]
+    B --> C[Save Canonical Artifact\nartifacts/model_*.joblib]
 
-    C --> D[Artifact Metadata<br/>model_id<br/>software_version<br/>created_at<br/>sha256<br/>published<br/>release_tag]
+    C --> D[Artifact Metadata\nmodel_id\nsoftware_version\ncreated_at\nsha256\npublished\nrelease_tag]
 
     C --> E[Pointer Management]
     E --> F[pointers.json]
@@ -32,7 +32,7 @@ flowchart TD
 
     C --> G[Publish / Release]
     G --> G1[Set published=True]
-    G --> G2[Optional release_tag<br/>vMAJOR.MINOR]
+    G --> G2[Optional release_tag\nvMAJOR.MINOR]
 
     C --> H[Model Registry]
     H --> H1[/models endpoint]
@@ -64,8 +64,8 @@ flowchart TD
 ```mermaid
 flowchart LR
     A[Train Model] --> B[Save Artifact]
-    B --> C[pointers.json<br/>stable / latest]
-    B --> D[Artifact Metadata<br/>model_id, release_tag]
+    B --> C[pointers.json\nstable / latest]
+    B --> D[Artifact Metadata\nmodel_id, release_tag]
     B --> E[Registry /models]
     C --> F[FastAPI API]
     D --> F
@@ -89,8 +89,9 @@ flowchart LR
 
 - **Production-style deployment**  
   - Dockerfile for building `textclf-api` images  
-  - `docker-compose.yml` for running the API container with mounted artifacts  
-  - `docker-compose.monitor.yml` for running Prometheus + API locally
+  - `docker-compose.product.yml` for the product/API deployment stack  
+  - `docker-compose.monitor.yml` for Prometheus + Grafana monitoring  
+  - `docker-compose.yml` as a lightweight local/dev compose setup
 
 - **Observability & rate limiting**  
   - `/metrics` endpoint with Prometheus client metrics  
@@ -166,263 +167,99 @@ curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
 │   ├── test_api.py
 │   ├── test_versioning.py
 │   └── test_promotion.py
-├── docker-compose.yml         # Run API container
-├── docker-compose.monitor.yml # Run API + Prometheus for monitoring
+├── docker-compose.product.yml # Product/API deployment stack
+├── docker-compose.monitor.yml # Monitoring stack (Prometheus/Grafana)
+├── docker-compose.yml         # Lightweight local development compose
 ├── Dockerfile                 # Build textclf-api image
 ├── client_demo.py             # Example usage of the generated Python client
 ├── .env.example               # Example environment variables (no secrets)
 └── README.md
-# End-to-End Production-Ready AI Inference Platform
-
-Production-oriented NLP inference platform built with FastAPI, Streamlit, Docker, Prometheus, and Grafana.
-
-The project implements:
-
-- ML model training and inference
-- Model artifact versioning and promotion
-- REST API serving
-- Streamlit inference UI
-- Observability and monitoring
-- Dockerized deployment
-- Automated testing and CI workflows
-
-Repository:
-
-```text
-https://github.com/sepantakamali/E2EPRAIIP
 ```
 
 ---
 
-# Architecture
+## Authentication
 
-```mermaid
-flowchart TD
-    A[Training Pipeline] --> B[Versioned Model Artifact]
-    B --> C[Artifact Registry / Persistence]
+Protected endpoints use Bearer token authentication.
 
-    C --> D[pointers.json]
-    D --> D1[latest]
-    D --> D2[stable]
-
-    C --> E[FastAPI Inference API]
-
-    E --> E1[/predict]
-    E --> E2[/health]
-    E --> E3[/metrics]
-    E --> E4[/models]
-    E --> E5[/docs]
-
-    E --> F[Prometheus]
-    F --> G[Grafana]
-
-    E --> H[Streamlit UI]
-
-    H --> H1[Single Predictions]
-    H --> H2[Batch Predictions]
-    H --> H3[Request History]
-    H --> H4[Model Selection]
-```
-
----
-
-# Current Features
-
-## Machine Learning
-
-- TF-IDF text vectorization
-- Chi-square feature selection
-- Logistic Regression classifier
-- Train/inference pipeline separation
-- Model metadata tracking
-- Versioned model artifacts
-- Stable/latest model promotion
-
----
-
-## FastAPI Inference Service
-
-Endpoints:
+Protected routes include:
 
 - `/predict`
-- `/health`
-- `/metrics`
 - `/models`
-- `/docs`
-- `/redoc`
-- `/openapi.json`
+- `/version`
 - `/whoami`
 
-Features:
-
-- Typed request/response schemas (Pydantic v2)
-- Structured logging
-- Request timing middleware
-- Authentication support
-- Internal-only endpoint protection
-- Prometheus instrumentation
-- OpenAPI schema generation
-
----
-
-## Streamlit UI
-
-Interactive frontend for:
-
-- Single text prediction
-- Batch prediction
-- CSV upload
-- Model selection (`latest` / `stable`)
-- Viewing API responses
-- Request history
-- CSV export
-- API endpoint shortcuts
-
----
-
-## Observability
-
-Monitoring stack:
-
-- Prometheus
-- Grafana
-- Application metrics
-- Structured logs
-
-Metrics include:
-
-- prediction request count
-- prediction latency
-- prediction errors
-- CPU usage
-- memory usage
-- Python runtime metrics
-- GC metrics
-- file descriptor metrics
-
----
-
-## Dockerized Deployment
-
-### Product Stack
-
-```text
-API
-UI
-metrics proxy
-```
-
-### Monitoring Stack
-
-```text
-Prometheus
-Grafana
-```
-
-Separate compose files are used for:
-
-```text
-Application deployment
-Monitoring deployment
-```
-
----
-
-## Quality & Validation
-
-- `pytest`
-- `mypy`
-- GitHub Actions CI
-- Type-safe codebase
-- Isolated persistence tests
-- API smoke tests
-
-Current status:
-
-```text
-pytest: passing
-mypy: passing
-```
-
----
-
-# Project Structure
-
-```text
-.
-├── artifacts/                  # Saved model artifacts, pointers, run logs
-├── monitoring/                 # Prometheus and Grafana configuration
-├── nginx/                      # Metrics proxy / reverse proxy
-├── logs/                       # Application logs
-├── scripts/                    # Utility scripts
-├── src/
-│   └── textclf/
-│       ├── api.py              # FastAPI service
-│       ├── persistence.py      # Artifact management and promotion
-│       ├── model.py            # ML pipeline
-│       ├── data.py             # Dataset loading
-│       ├── metrics.py          # Prometheus metrics
-│       ├── logging_conf.py     # Logging configuration
-│       ├── cli.py              # CLI utilities
-│       └── ...
-├── tests/                      # pytest test suite
-├── textclf_client/             # Generated/client SDK utilities
-├── ui/                         # Streamlit frontend
-├── Dockerfile
-├── docker-compose.product.yml
-├── docker-compose.monitor.yml
-├── requirements.txt
-├── pyproject.toml
-├── client_demo.py
-├── README.md
-└── Makefile
-```
-
----
-
-# Docker Usage
-
-## Product Stack
-
-Start:
+Tokens are issued using:
 
 ```bash
-docker compose -p textclf-product -f docker-compose.product.yml up -d
+python scripts/issue_token.py \
+  --subject client-demo \
+  --client-id client-demo \
+  --scopes predict:run version:read whoami:read health:read
 ```
 
-Stop:
+The generated SDK supports authenticated usage through `AuthenticatedClient`.
+
+---
+
+## Generated Python SDK
+
+The repository includes a generated OpenAPI-based Python SDK under:
+
+```text
+textclf_client/
+```
+
+Regenerate the SDK:
 
 ```bash
-docker compose -p textclf-product -f docker-compose.product.yml down
+openapi-python-client generate \
+  --url http://localhost:8000/openapi.json \
+  --overwrite \
+  --output-path textclf_client
+```
+
+Example usage:
+
+```bash
+python client_demo.py
 ```
 
 ---
 
-## Monitoring Stack
+## Local Development
 
-Start:
-
-```bash
-docker compose -p textclf-monitor -f docker-compose.monitor.yml up -d
-```
-
-Stop:
+Load environment variables:
 
 ```bash
-docker compose -p textclf-monitor -f docker-compose.monitor.yml down
+set -a
+source .env
+set +a
 ```
 
----
+Run the API locally:
 
-# Local Development
+```bash
+uvicorn textclf.api:app \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --loop asyncio \
+  --reload
+```
 
-## Run tests
+Run the Streamlit UI:
+
+```bash
+streamlit run ui/app.py
+```
+
+Run tests:
 
 ```bash
 pytest
 ```
 
-## Run type checking
+Run type checking:
 
 ```bash
 mypy src
@@ -430,20 +267,29 @@ mypy src
 
 ---
 
-# API Example
+## Docker
+
+Run product stack:
 
 ```bash
-curl -X POST "http://localhost:8000/predict?model=stable" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "texts": ["Hockey fans were ecstatic after the playoff win."],
-    "return_probabilities": false
-  }'
+docker compose -p textclf-product -f docker-compose.product.yml up -d
+```
+
+Run monitoring stack:
+
+```bash
+docker compose -p textclf-monitor -f docker-compose.monitor.yml up -d
+```
+
+Stop containers:
+
+```bash
+docker compose down
 ```
 
 ---
 
-# Monitoring
+## Monitoring
 
 Default local endpoints:
 
@@ -457,40 +303,40 @@ Grafana:    http://localhost:3000
 
 ---
 
-# CI/CD
+## CI/CD
 
-Current GitHub Actions workflows:
+GitHub Actions workflows:
 
-```text
-CI:
-- pytest
-- mypy
-
-Docker:
-- Build Docker image
-- Push image to GHCR
-```
+- CI pipeline:
+  - pytest
+  - mypy
+- Docker pipeline:
+  - build image
+  - push image to GHCR
 
 ---
 
-# Current Status
+## Current Status
 
 Implemented:
 
-- Production-style FastAPI inference service
-- Streamlit frontend
-- Dockerized deployment
-- Prometheus + Grafana monitoring
+- FastAPI inference API
 - Model versioning and promotion
+- Typed OpenAPI schema
+- Generated Python SDK
+- Token-based authentication
+- Streamlit UI
+- Docker deployment
+- Prometheus monitoring
+- Grafana integration
 - Structured logging
-- Automated tests
+- pytest + mypy quality gates
 - GitHub Actions CI
-- GHCR Docker publishing
+- GHCR image publishing
 
-Still planned:
+Remaining work:
 
-- Dependency pinning cleanup
-- Deployment automation
-- Final CI/CD refinement
-- README refinement
-- Production cloud deployment
+- dependency pinning refinement
+- deployment automation
+- final CI/CD polish
+- cloud deployment hardening
