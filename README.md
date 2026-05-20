@@ -172,3 +172,325 @@ curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
 ├── client_demo.py             # Example usage of the generated Python client
 ├── .env.example               # Example environment variables (no secrets)
 └── README.md
+# End-to-End Production-Ready AI Inference Platform
+
+Production-oriented NLP inference platform built with FastAPI, Streamlit, Docker, Prometheus, and Grafana.
+
+The project implements:
+
+- ML model training and inference
+- Model artifact versioning and promotion
+- REST API serving
+- Streamlit inference UI
+- Observability and monitoring
+- Dockerized deployment
+- Automated testing and CI workflows
+
+Repository:
+
+```text
+https://github.com/sepantakamali/E2EPRAIIP
+```
+
+---
+
+# Architecture
+
+```mermaid
+flowchart TD
+    A[Training Pipeline] --> B[Versioned Model Artifact]
+    B --> C[Artifact Registry / Persistence]
+
+    C --> D[pointers.json]
+    D --> D1[latest]
+    D --> D2[stable]
+
+    C --> E[FastAPI Inference API]
+
+    E --> E1[/predict]
+    E --> E2[/health]
+    E --> E3[/metrics]
+    E --> E4[/models]
+    E --> E5[/docs]
+
+    E --> F[Prometheus]
+    F --> G[Grafana]
+
+    E --> H[Streamlit UI]
+
+    H --> H1[Single Predictions]
+    H --> H2[Batch Predictions]
+    H --> H3[Request History]
+    H --> H4[Model Selection]
+```
+
+---
+
+# Current Features
+
+## Machine Learning
+
+- TF-IDF text vectorization
+- Chi-square feature selection
+- Logistic Regression classifier
+- Train/inference pipeline separation
+- Model metadata tracking
+- Versioned model artifacts
+- Stable/latest model promotion
+
+---
+
+## FastAPI Inference Service
+
+Endpoints:
+
+- `/predict`
+- `/health`
+- `/metrics`
+- `/models`
+- `/docs`
+- `/redoc`
+- `/openapi.json`
+- `/whoami`
+
+Features:
+
+- Typed request/response schemas (Pydantic v2)
+- Structured logging
+- Request timing middleware
+- Authentication support
+- Internal-only endpoint protection
+- Prometheus instrumentation
+- OpenAPI schema generation
+
+---
+
+## Streamlit UI
+
+Interactive frontend for:
+
+- Single text prediction
+- Batch prediction
+- CSV upload
+- Model selection (`latest` / `stable`)
+- Viewing API responses
+- Request history
+- CSV export
+- API endpoint shortcuts
+
+---
+
+## Observability
+
+Monitoring stack:
+
+- Prometheus
+- Grafana
+- Application metrics
+- Structured logs
+
+Metrics include:
+
+- prediction request count
+- prediction latency
+- prediction errors
+- CPU usage
+- memory usage
+- Python runtime metrics
+- GC metrics
+- file descriptor metrics
+
+---
+
+## Dockerized Deployment
+
+### Product Stack
+
+```text
+API
+UI
+metrics proxy
+```
+
+### Monitoring Stack
+
+```text
+Prometheus
+Grafana
+```
+
+Separate compose files are used for:
+
+```text
+Application deployment
+Monitoring deployment
+```
+
+---
+
+## Quality & Validation
+
+- `pytest`
+- `mypy`
+- GitHub Actions CI
+- Type-safe codebase
+- Isolated persistence tests
+- API smoke tests
+
+Current status:
+
+```text
+pytest: passing
+mypy: passing
+```
+
+---
+
+# Project Structure
+
+```text
+.
+├── artifacts/                  # Saved model artifacts, pointers, run logs
+├── monitoring/                 # Prometheus and Grafana configuration
+├── nginx/                      # Metrics proxy / reverse proxy
+├── logs/                       # Application logs
+├── scripts/                    # Utility scripts
+├── src/
+│   └── textclf/
+│       ├── api.py              # FastAPI service
+│       ├── persistence.py      # Artifact management and promotion
+│       ├── model.py            # ML pipeline
+│       ├── data.py             # Dataset loading
+│       ├── metrics.py          # Prometheus metrics
+│       ├── logging_conf.py     # Logging configuration
+│       ├── cli.py              # CLI utilities
+│       └── ...
+├── tests/                      # pytest test suite
+├── textclf_client/             # Generated/client SDK utilities
+├── ui/                         # Streamlit frontend
+├── Dockerfile
+├── docker-compose.product.yml
+├── docker-compose.monitor.yml
+├── requirements.txt
+├── pyproject.toml
+├── client_demo.py
+├── README.md
+└── Makefile
+```
+
+---
+
+# Docker Usage
+
+## Product Stack
+
+Start:
+
+```bash
+docker compose -p textclf-product -f docker-compose.product.yml up -d
+```
+
+Stop:
+
+```bash
+docker compose -p textclf-product -f docker-compose.product.yml down
+```
+
+---
+
+## Monitoring Stack
+
+Start:
+
+```bash
+docker compose -p textclf-monitor -f docker-compose.monitor.yml up -d
+```
+
+Stop:
+
+```bash
+docker compose -p textclf-monitor -f docker-compose.monitor.yml down
+```
+
+---
+
+# Local Development
+
+## Run tests
+
+```bash
+pytest
+```
+
+## Run type checking
+
+```bash
+mypy src
+```
+
+---
+
+# API Example
+
+```bash
+curl -X POST "http://localhost:8000/predict?model=stable" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["Hockey fans were ecstatic after the playoff win."],
+    "return_probabilities": false
+  }'
+```
+
+---
+
+# Monitoring
+
+Default local endpoints:
+
+```text
+API:        http://localhost:8000
+Swagger:    http://localhost:8000/docs
+UI:         http://localhost:8501
+Prometheus: http://localhost:9090
+Grafana:    http://localhost:3000
+```
+
+---
+
+# CI/CD
+
+Current GitHub Actions workflows:
+
+```text
+CI:
+- pytest
+- mypy
+
+Docker:
+- Build Docker image
+- Push image to GHCR
+```
+
+---
+
+# Current Status
+
+Implemented:
+
+- Production-style FastAPI inference service
+- Streamlit frontend
+- Dockerized deployment
+- Prometheus + Grafana monitoring
+- Model versioning and promotion
+- Structured logging
+- Automated tests
+- GitHub Actions CI
+- GHCR Docker publishing
+
+Still planned:
+
+- Dependency pinning cleanup
+- Deployment automation
+- Final CI/CD refinement
+- README refinement
+- Production cloud deployment

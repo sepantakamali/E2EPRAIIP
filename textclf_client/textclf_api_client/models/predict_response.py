@@ -7,7 +7,7 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.model_state import ModelState
+    from ..models.predict_response_model import PredictResponseModel
 
 
 T = TypeVar("T", bound="PredictResponse")
@@ -18,12 +18,12 @@ class PredictResponse:
     """
     Attributes:
         labels (list[int]):
-        model (ModelState):
+        model (PredictResponseModel):
         probabilities (Union[None, Unset, list[list[float]]]):
     """
 
     labels: list[int]
-    model: "ModelState"
+    model: "PredictResponseModel"
     probabilities: Union[None, Unset, list[list[float]]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -60,12 +60,12 @@ class PredictResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.model_state import ModelState
+        from ..models.predict_response_model import PredictResponseModel
 
         d = dict(src_dict)
         labels = cast(list[int], d.pop("labels"))
 
-        model = ModelState.from_dict(d.pop("model"))
+        model = PredictResponseModel.from_dict(d.pop("model"))
 
         def _parse_probabilities(data: object) -> Union[None, Unset, list[list[float]]]:
             if data is None:

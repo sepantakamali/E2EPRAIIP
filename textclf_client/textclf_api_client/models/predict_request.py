@@ -13,18 +13,18 @@ T = TypeVar("T", bound="PredictRequest")
 class PredictRequest:
     """
     Attributes:
-        texts (list[str]): One or more input texts
-        return_prob (Union[Unset, bool]): Return class probabilities if available Default: False.
+        texts (list[str]):
+        return_probabilities (Union[Unset, bool]):  Default: False.
     """
 
     texts: list[str]
-    return_prob: Union[Unset, bool] = False
+    return_probabilities: Union[Unset, bool] = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         texts = self.texts
 
-        return_prob = self.return_prob
+        return_probabilities = self.return_probabilities
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -33,8 +33,8 @@ class PredictRequest:
                 "texts": texts,
             }
         )
-        if return_prob is not UNSET:
-            field_dict["return_prob"] = return_prob
+        if return_probabilities is not UNSET:
+            field_dict["return_probabilities"] = return_probabilities
 
         return field_dict
 
@@ -43,11 +43,11 @@ class PredictRequest:
         d = dict(src_dict)
         texts = cast(list[str], d.pop("texts"))
 
-        return_prob = d.pop("return_prob", UNSET)
+        return_probabilities = d.pop("return_probabilities", UNSET)
 
         predict_request = cls(
             texts=texts,
-            return_prob=return_prob,
+            return_probabilities=return_probabilities,
         )
 
         predict_request.additional_properties = d

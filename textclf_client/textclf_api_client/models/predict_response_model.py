@@ -1,57 +1,31 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..types import UNSET, Unset
-
-T = TypeVar("T", bound="PredictRequest")
+T = TypeVar("T", bound="PredictResponseModel")
 
 
 @_attrs_define
-class PredictRequest:
-    """
-    Attributes:
-        texts (list[str]): One or more input texts
-        return_prob (Union[Unset, bool]): Return class probabilities if available Default: False.
-    """
+class PredictResponseModel:
+    """ """
 
-    texts: list[str]
-    return_prob: Union[Unset, bool] = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        texts = self.texts
-
-        return_prob = self.return_prob
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "texts": texts,
-            }
-        )
-        if return_prob is not UNSET:
-            field_dict["return_prob"] = return_prob
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        texts = cast(list[str], d.pop("texts"))
+        predict_response_model = cls()
 
-        return_prob = d.pop("return_prob", UNSET)
-
-        predict_request = cls(
-            texts=texts,
-            return_prob=return_prob,
-        )
-
-        predict_request.additional_properties = d
-        return predict_request
+        predict_response_model.additional_properties = d
+        return predict_response_model
 
     @property
     def additional_keys(self) -> list[str]:

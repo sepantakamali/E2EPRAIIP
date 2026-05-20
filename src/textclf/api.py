@@ -645,7 +645,7 @@ def metrics():
 @app.post("/predict", response_model=PredictResponse)
 def predict(
     request: Request,
-    payload: dict = Body(...),
+    payload: PredictRequest,
     model: Optional[str] = Query(
         default=None,
         description='Model selector: pointer ("latest"/"stable"), model_id, or artifact filename.',
@@ -675,21 +675,25 @@ def predict(
                 raise HTTPException(status_code=404, detail=str(e))
 
         # Validate inputs
-        if not body.texts:
+        if not payload.texts:
             PRED_ERRORS.inc()
             raise HTTPException(status_code=422, detail="No texts provided.")
         if len(body.texts) > MAX_TEXTS:
             PRED_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Too many texts; max is {MAX_TEXTS}.")
-        too_long = [text for text in body.texts if len(text) > MAX_TEXT_LEN]
+        too_long = [text for text in payload.texts if len(text) > MAX_TEXT_LEN]
         if too_long:
             PRED_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Some texts exceed {MAX_TEXT_LEN} characters.")
 
         # Predict
         pipe = STATE["pipe"]
-        labels = predict_labels(pipe, body.texts)
-        _probabilities = _predict_probabilities_safe(pipe, body.texts) if body.return_probabilities else None
+        labels = predict_labels(pipe, payload.texts)
+        _probabilities = (
+            _predict_probabilities_safe(pipe, payload.texts)
+            if payload.return_probabilities
+            else None
+        )
 
         # Record successful prediction
         PREDICTIONS.inc()
@@ -697,7 +701,7 @@ def predict(
             "Prediction succeeded token_id=%s client_id=%s texts=%s request_id=%s",
             principal.token_id,
             principal.client_id,
-            len(body.texts),
+            len(payload.texts),
             getattr(request.state, "request_id", None),
         )
 

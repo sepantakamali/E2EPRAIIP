@@ -6,7 +6,6 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...models.predict_predict_post_model_type_0 import PredictPredictPostModelType0
 from ...models.predict_request import PredictRequest
 from ...models.predict_response import PredictResponse
 from ...types import UNSET, Response, Unset
@@ -15,7 +14,7 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     *,
     body: PredictRequest,
-    model: Union[None, PredictPredictPostModelType0, Unset] = UNSET,
+    model: Union[None, Unset, str] = UNSET,
     model_path: Union[None, Unset, str] = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -25,8 +24,6 @@ def _get_kwargs(
     json_model: Union[None, Unset, str]
     if isinstance(model, Unset):
         json_model = UNSET
-    elif isinstance(model, PredictPredictPostModelType0):
-        json_model = model.value
     else:
         json_model = model
     params["model"] = json_model
@@ -86,16 +83,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: PredictRequest,
-    model: Union[None, PredictPredictPostModelType0, Unset] = UNSET,
+    model: Union[None, Unset, str] = UNSET,
     model_path: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, PredictResponse]]:
     """Predict
 
     Args:
-        model (Union[None, PredictPredictPostModelType0, Unset]): Override which model pointer to
-            use ("latest" or "stable").
+        model (Union[None, Unset, str]): Model selector: pointer ("latest"/"stable"), model_id, or
+            artifact filename.
         model_path (Union[None, Unset, str]): Explicit artifact path (overrides 'model').
         body (PredictRequest):
 
@@ -122,16 +119,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: PredictRequest,
-    model: Union[None, PredictPredictPostModelType0, Unset] = UNSET,
+    model: Union[None, Unset, str] = UNSET,
     model_path: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, PredictResponse]]:
     """Predict
 
     Args:
-        model (Union[None, PredictPredictPostModelType0, Unset]): Override which model pointer to
-            use ("latest" or "stable").
+        model (Union[None, Unset, str]): Model selector: pointer ("latest"/"stable"), model_id, or
+            artifact filename.
         model_path (Union[None, Unset, str]): Explicit artifact path (overrides 'model').
         body (PredictRequest):
 
@@ -153,16 +150,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: PredictRequest,
-    model: Union[None, PredictPredictPostModelType0, Unset] = UNSET,
+    model: Union[None, Unset, str] = UNSET,
     model_path: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, PredictResponse]]:
     """Predict
 
     Args:
-        model (Union[None, PredictPredictPostModelType0, Unset]): Override which model pointer to
-            use ("latest" or "stable").
+        model (Union[None, Unset, str]): Model selector: pointer ("latest"/"stable"), model_id, or
+            artifact filename.
         model_path (Union[None, Unset, str]): Explicit artifact path (overrides 'model').
         body (PredictRequest):
 
@@ -187,16 +184,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: PredictRequest,
-    model: Union[None, PredictPredictPostModelType0, Unset] = UNSET,
+    model: Union[None, Unset, str] = UNSET,
     model_path: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, PredictResponse]]:
     """Predict
 
     Args:
-        model (Union[None, PredictPredictPostModelType0, Unset]): Override which model pointer to
-            use ("latest" or "stable").
+        model (Union[None, Unset, str]): Model selector: pointer ("latest"/"stable"), model_id, or
+            artifact filename.
         model_path (Union[None, Unset, str]): Explicit artifact path (overrides 'model').
         body (PredictRequest):
 

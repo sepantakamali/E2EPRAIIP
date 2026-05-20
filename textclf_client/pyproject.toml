@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "textclf-client"
+name = "textclf-api-client"
 version = "0.1.0"
 description = "A client library for accessing textclf API"
 authors = []
 readme = "README.md"
 packages = [
-    { include = "textclf_client" },
+    { include = "textclf_api_client" },
 ]
-include = ["CHANGELOG.md", "textclf_client/py.typed"]
+include = ["CHANGELOG.md", "textclf_api_client/py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
