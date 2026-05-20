@@ -35,18 +35,18 @@ flowchart TD
     G --> G2[Optional release_tag\nvMAJOR.MINOR]
 
     C --> H[Model Registry]
-    H --> H1[/models endpoint]
+    H --> H1[models endpoint]
     H --> H2[Read current artifact metadata]
 
     F --> I[FastAPI Inference Service]
     H --> I
     D --> I
 
-    I --> I1[/predict]
-    I --> I2[/version]
-    I --> I3[/health]
-    I --> I4[/models]
-    I --> I5[/metrics]
+    I --> I1[predict endpoint]
+    I --> I2[version endpoint]
+    I --> I3[health endpoint]
+    I --> I4[models endpoint]
+    I --> I5[metrics endpoint]
 
     I --> J[Prometheus]
     J --> K[Grafana]
