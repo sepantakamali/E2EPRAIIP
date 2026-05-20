@@ -12,7 +12,7 @@ def build_pipeline(max_features: int, max_iter: int) -> Pipeline:
     return Pipeline([
     ('vectorizer', TfidfVectorizer(stop_words='english', max_features=50000)),
     ('feature_selection', SelectKBest(chi2, k=5000)), # Reduce to top 5000 features
-    ('classification', LogisticRegression(solver='saga', multi_class='multinomial', max_iter=max_iter))
+    ('classification', LogisticRegression(solver='saga', max_iter=max_iter))
 ])
 
 def train(pipe: Pipeline, X_train: List[str], y_train: List[int]) -> Pipeline:
