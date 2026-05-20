@@ -2,7 +2,12 @@ from textclf.data import load_split
 from textclf.config import DEFAULT
 
 def test_load_split_shapes():
-    X_train, X_test, y_train, y_test = load_split(DEFAULT.categories, DEFAULT.test_size, DEFAULT.random_state)
+    X_train, X_test, y_train, y_test = load_split(
+        DEFAULT.categories,
+        DEFAULT.test_size,
+        DEFAULT.random_state,
+        DEFAULT.shuffle,
+    )
     assert len(X_train) > 0 and len(X_test) > 0
     assert len(X_train) == len(y_train)
     assert len(X_test) == len(y_test)
