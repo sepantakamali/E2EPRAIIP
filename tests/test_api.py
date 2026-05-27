@@ -14,22 +14,27 @@ client = TestClient(app)
 
 
 def test_health_and_predict_smoke(tmp_path: Path):
-    orig_internal = api.INTERNAL_ONLY_ENABLED
-    orig_auth = api.AUTH_ENABLED
-    orig_pipe = api.STATE["pipe"]
-    orig_meta = api.STATE["meta"]
-    orig_model_state = api.STATE["state"]
-    orig_artifacts_dir = p.ARTIFACTS_DIR
-    orig_latest = p.LATEST_PATH
-    orig_runlog = getattr(p, "RUNLOG_PATH", None)
+    # Saving original global state
+    original_internal = api.INTERNAL_ONLY_ENABLED
+    original_auth = api.AUTH_ENABLED
+    original_pipe = api.STATE["pipe"]
+    original_meta = api.STATE["meta"]
+    original_model_state = api.STATE["state"]
+    original_artifacts_dir = p.ARTIFACTS_DIR
+    original_latest = p.LATEST_PATH
+    original_pointers_path = p.POINTERS_PATH
+    original_runlog_path = p.RUNLOG_PATH
 
     try:
+        # Changing it to temporary testing state
         api.INTERNAL_ONLY_ENABLED = False
         api.AUTH_ENABLED = False
         p.ARTIFACTS_DIR = tmp_path
         p.LATEST_PATH = tmp_path / "model_latest.joblib"
+        p.POINTERS_PATH = tmp_path / "pointers.json"
         p.RUNLOG_PATH = tmp_path / "runs.jsonl"
 
+        # Using default config values
         X_train, _, y_train, _ = load_split(
             DEFAULT.categories,
             DEFAULT.test_size,
@@ -51,28 +56,29 @@ def test_health_and_predict_smoke(tmp_path: Path):
             meta_published=bool(getattr(meta_loaded, "published", False)),
         )
 
-        r = client.get("/health")
-        assert r.status_code == 200 and r.json()["status"] == "ok"
+        get_health = client.get("/health")
+        assert get_health.status_code == 200 and get_health.json()["status"] == "ok"
 
         payload = {
             "texts": ["Hockey fans were ecstatic after the playoff win."],
             "return_probabilities": False,
         }
 
-        pr = client.post("/predict", json=payload)
-        assert pr.status_code == 200
+        post_predict = client.post("/predict", json=payload)
+        assert post_predict.status_code == 200
 
-        data = pr.json()
+        data = post_predict.json()
         assert "labels" in data and isinstance(data["labels"], list)
         assert "model" in data and "model_path" in data["model"]
 
     finally:
-        api.INTERNAL_ONLY_ENABLED = orig_internal
-        api.AUTH_ENABLED = orig_auth
-        api.STATE["pipe"] = orig_pipe
-        api.STATE["meta"] = orig_meta
-        api.STATE["state"] = orig_model_state
-        p.ARTIFACTS_DIR = orig_artifacts_dir
-        p.LATEST_PATH = orig_latest
-        if orig_runlog is not None:
-            p.RUNLOG_PATH = orig_runlog
+        # Reapplying the default values
+        api.INTERNAL_ONLY_ENABLED = original_internal
+        api.AUTH_ENABLED = original_auth
+        api.STATE["pipe"] = original_pipe
+        api.STATE["meta"] = original_meta
+        api.STATE["state"] = original_model_state
+        p.ARTIFACTS_DIR = original_artifacts_dir
+        p.LATEST_PATH = original_latest
+        p.POINTERS_PATH = original_pointers_path
+        p.RUNLOG_PATH = original_runlog_path

@@ -12,5 +12,6 @@ def test_train_and_predict():
     pipe = build_pipeline(DEFAULT.max_features, DEFAULT.max_iter)
     trained = train(pipe, X_train, y_train)
     preds = predict(trained, X_test)
+    # Assert structure
     assert len(preds) == len(y_test)
     assert set(preds).issubset({0, 1})

@@ -11,6 +11,6 @@ def test_load_split_shapes():
     assert len(X_train) > 0 and len(X_test) > 0
     assert len(X_train) == len(y_train)
     assert len(X_test) == len(y_test)
-    # class labels must be 0/1 only
+    # Class labels must be 0/1 only
     assert set(y_train).issubset({0, 1})
     assert set(y_test).issubset({0, 1})
