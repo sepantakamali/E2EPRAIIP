@@ -1,150 +1,200 @@
 # End-to-End Production-Ready AI Inference Platform
 
-Modern, production-style text classification service with:
-
-- FastAPI + Pydantic v2 for a typed, OpenAPI-compliant HTTP API  
-- Dockerized deployment with model versioning and promotion (latest / stable)  
-- Structured logging, Prometheus metrics, and optional Grafana Cloud integration  
-- Strong type safety and testing (mypy, pytest)  
-- A generated Python client SDK for downstream integration
+Modern text classification inference platform with a FastAPI backend, Streamlit UI, model artifact versioning, token-based authentication, Docker deployment, Prometheus/Grafana monitoring, and a generated Python SDK.
 
 > Repository: https://github.com/sepantakamali/E2EPRAIIP
 
 ---
 
+## What This Project Provides
+
+- A trained text classification model served through a typed FastAPI API
+- Versioned model artifacts with metadata, `latest`, and `stable` pointer resolution
+- A Streamlit UI for local/product-style interaction with the inference service
+- Bearer-token authentication with scoped tokens
+- Prometheus metrics and Grafana dashboards for operational monitoring
+- Docker Compose stacks for product and monitoring environments
+- A generated OpenAPI Python SDK for downstream integration
+- Automated quality gates with `pytest`, `mypy`, GitHub Actions, and GHCR image publishing
+
+---
+
 ## Architecture
 
-This system implements a production-style ML inference pipeline covering model lifecycle, deployment, and observability.
+The project is easier to understand as several connected layers rather than one large diagram.
 
-### Full Architecture
-
-```mermaid
-flowchart TD
-    A[Training Pipeline] --> B[Build Trained Text Classifier]
-    B --> C[Save Canonical Artifact\nartifacts/model_*.joblib]
-
-    C --> D[Artifact Metadata\nmodel_id\nsoftware_version\ncreated_at\nsha256\npublished\nrelease_tag]
-
-    C --> E[Pointer Management]
-    E --> F[pointers.json]
-    F --> F1[latest -> newest artifact]
-    F --> F2[stable -> promoted artifact]
-
-    C --> G[Publish / Release]
-    G --> G1[Set published=True]
-    G --> G2[Optional release_tag\nvMAJOR.MINOR]
-
-    C --> H[Model Registry]
-    H --> H1[models endpoint]
-    H --> H2[Read current artifact metadata]
-
-    F --> I[FastAPI Inference Service]
-    H --> I
-    D --> I
-
-    I --> I1[predict endpoint]
-    I --> I2[version endpoint]
-    I --> I3[health endpoint]
-    I --> I4[models endpoint]
-    I --> I5[metrics endpoint]
-
-    I --> J[Prometheus]
-    J --> K[Grafana]
-
-    I --> L[Streamlit Inference Console]
-    L --> L1[Select stable / latest / published model]
-    L --> L2[Single text / batch / file upload]
-    L --> L3[Prediction results + raw JSON]
-    L --> L4[Request history + CSV export]
-    L --> L5[Health / Docs / Metrics links]
-```
-
-### Simplified Flow
+### 1. System Overview
 
 ```mermaid
 flowchart LR
-    A[Train Model] --> B[Save Artifact]
-    B --> C[pointers.json\nstable / latest]
-    B --> D[Artifact Metadata\nmodel_id, release_tag]
-    B --> E[Registry /models]
-    C --> F[FastAPI API]
-    D --> F
-    E --> F
-    F --> G[Streamlit UI]
-    F --> H[Prometheus]
-    H --> I[Grafana]
+    Train[Train Model] --> Artifact[Versioned Model Artifact]
+    Artifact --> Registry[Artifact Registry]
+    Registry --> API[FastAPI API]
+    API --> UI[Streamlit UI]
+    API --> Metrics[Prometheus Metrics]
+    Metrics --> Grafana[Grafana Dashboard]
+    API --> Schema[OpenAPI Schema]
+    Schema --> SDK[Generated Python SDK]
 ```
 
-## Features
+### 2. Model Lifecycle
 
-- **FastAPI inference microservice**  
-  - `/health` and `/predict` endpoints  
-  - Built-in request validation (Pydantic v2)  
-  - Automatic OpenAPI / Swagger docs at `/docs` and `/redoc`
+```mermaid
+flowchart TD
+    Train[Training Pipeline] --> Build[Build Text Classifier]
+    Build --> Save[Save Joblib Artifact]
+    Save --> Meta[Write Artifact Metadata]
+    Save --> Pointers[Update Pointers File]
+    Save --> Runs[Append Run Log]
 
-- **Model versioning & promotion**  
-  - Versioned artifacts stored under `artifacts/`  
-  - Pointers for `latest` and `stable` models (`model_latest.joblib`, `model_stable.joblib`)  
-  - CLI and helper scripts to train, save, and promote models
+    Pointers --> Latest[Latest Pointer]
+    Pointers --> Stable[Stable Pointer]
 
-- **Production-style deployment**  
-  - Dockerfile for building `textclf-api` images  
-  - `docker-compose.product.yml` for the product/API deployment stack  
-  - `docker-compose.monitor.yml` for Prometheus + Grafana monitoring  
-  - `docker-compose.yml` as a lightweight local/dev compose setup
+    Save --> Promote[Promote Artifact]
+    Promote --> Stable
+    Promote --> Published[Mark Published]
+    Promote --> Release[Optional Release Tag]
 
-- **Observability & rate limiting**  
-  - `/metrics` endpoint with Prometheus client metrics  
-  - Custom application metrics:
-    - `pred_requests_total`
-    - `pred_request_errors_total`
-    - `pred_latency_seconds` (histogram)
-  - Optional integration with Grafana Cloud via `remote_write`  
-  - SlowAPI-based rate limiting on `/predict` (IP-based)
+    Latest --> Resolve[Model Resolution]
+    Stable --> Resolve
+    Meta --> Resolve
+    Resolve --> API[FastAPI Runtime State]
+```
 
-- **Quality gates**  
-  - `pytest` test suite, including API tests (`tests/test_api.py`)  
-  - `mypy` static type checking across `src/`  
-  - Configurable logging via `logging_conf.py`
+### 3. API, Authentication, and Client Flow
 
-- **Client SDK**  
-  - OpenAPI schema exposed at `/openapi.json`  
-  - Generated Python client in `textclf_client/` for programmatic use  
-  - Install locally with: `pip install -e textclf_client`
-  - Example usage in `client_demo.py`
+```mermaid
+flowchart LR
+    TokenScript[Token Issuer Script] --> TokenFile[Client Token File]
+    TokenFile --> SDKClient[Authenticated SDK Client]
+    SDKClient --> Auth[Bearer Auth Layer]
+    Auth --> API[FastAPI API]
 
-## Production deployment (Render)
+    API --> Predict[Predict Endpoint]
+    API --> Version[Version Endpoint]
+    API --> Models[Models Endpoint]
+    API --> Whoami[Whoami Endpoint]
+    API --> Health[Health Endpoint]
 
-A public demo deployment is available on Render:
+    API --> OpenAPI[OpenAPI Schema]
+    OpenAPI --> Generator[OpenAPI Python Client Generator]
+    Generator --> SDKPackage[Generated Python SDK]
+```
 
-- Current demo: https://e2epraiip.onrender.com
+### 4. Docker and Monitoring Layout
 
-- Base URL: `https://e2epraiip.onrender.com`
-- Health check: `GET /health`
-- OpenAPI docs: `GET /docs`
-- Metrics: `GET /metrics` (if exposed)
+```mermaid
+flowchart TD
+    ProductCompose[Product Compose Stack] --> UI[Streamlit UI Container]
+    ProductCompose --> API[FastAPI API Container]
+    ProductCompose --> Proxy[Metrics Proxy Container]
 
-Example request:
+    MonitorCompose[Monitoring Compose Stack] --> Prometheus[Prometheus Container]
+    MonitorCompose --> Grafana[Grafana Container]
 
-```bash
-curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
-  -H "Content-Type: application/json" \
-  -d '{"texts":["Hockey fans were ecstatic after the playoff win."],"return_prob":false}'
+    UI --> API
+    Prometheus --> Proxy
+    Proxy --> API
+    Prometheus --> Grafana
 ```
 
 ---
 
-## Tech Stack
+## Features
 
-- **Language**: Python 3.11+
-- **Web Framework**: FastAPI
-- **Validation**: Pydantic v2
-- **Model Persistence**: joblib
-- **Containerization**: Docker
-- **Rate Limiting**: SlowAPI
-- **Monitoring**: Prometheus, optional Grafana Cloud
-- **Testing**: pytest
-- **Typing**: mypy
+### FastAPI Inference Service
+
+Protected endpoints include:
+
+- `POST /predict`
+- `GET /version`
+- `GET /models`
+- `GET /whoami`
+
+Operational endpoints include:
+
+- `GET /health`
+- `GET /ready`
+- `GET /metrics`
+- `GET /openapi.json` when documentation is enabled
+- `GET /docs` when documentation is enabled
+
+Main API features:
+
+- Pydantic v2 request and response schemas
+- OpenAPI schema generation
+- Bearer-token authentication
+- Scoped token support
+- Structured request logging
+- Request IDs
+- Runtime model metadata reporting
+- Prometheus metric instrumentation
+
+### Model Versioning and Promotion
+
+The model lifecycle supports:
+
+- versioned `.joblib` artifacts under `artifacts/`
+- artifact metadata including model ID, software version, creation time, hash, publication status, and release tag
+- `pointers.json` for `latest` and `stable` model resolution
+- run logging through `runs.model`
+- model promotion from candidate artifact to stable artifact
+- model selection by pointer, model ID, or artifact filename
+
+### Streamlit UI
+
+The Streamlit interface supports:
+
+- single text prediction
+- batch prediction
+- file upload
+- model selection
+- prediction result display
+- raw JSON inspection
+- request history
+- CSV export
+- helpful links to API and monitoring endpoints
+
+### Generated Python SDK
+
+The SDK is generated from the FastAPI OpenAPI schema and lives under:
+
+```text
+textclf_client/
+```
+
+It provides:
+
+- typed request models
+- typed response models
+- endpoint wrapper functions
+- authenticated client support through `AuthenticatedClient`
+- reusable integration code for external Python consumers
+
+### Observability
+
+Monitoring support includes:
+
+- Prometheus scraping
+- Grafana dashboards
+- prediction request counters
+- prediction error counters
+- prediction latency histograms
+- process CPU and memory metrics
+- Python runtime metrics
+- file descriptor metrics
+- structured application logs
+
+### Deployment
+
+Current deployment-related files:
+
+- `Dockerfile` for building the application image
+- `docker-compose.product.yml` for the product stack
+- `docker-compose.monitor.yml` for the monitoring stack
+- `docker-compose.yml` as a lightweight local development compose setup
+- GitHub Actions workflow for tests and type checking
+- GitHub Actions workflow for Docker image publishing to GHCR
 
 ---
 
@@ -152,27 +202,35 @@ curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
 
 ```text
 .
+├── artifacts/                  # Model artifacts, pointers, and run logs
+├── monitoring/                 # Prometheus and Grafana configuration
+├── nginx/                      # Metrics proxy configuration
+├── logs/                       # Local application log files
+├── scripts/                    # Token, setup, and utility scripts
 ├── src/
 │   └── textclf/
-│       ├── api.py             # FastAPI application & endpoints
-│       ├── cli.py             # CLI for training/promoting models
-│       ├── persistence.py     # Model save/load, runlog, promotion logic
-│       ├── logging_conf.py    # Logging configuration
-│       ├── predict.py         # CLI prediction tool
+│       ├── api.py              # FastAPI app, routes, auth integration, runtime state
+│       ├── cli.py              # CLI utilities for model operations
+│       ├── config.py           # Project configuration defaults
+│       ├── data.py             # Dataset loading and train/test splitting
+│       ├── logging_conf.py     # Logging configuration
+│       ├── metrics.py          # Prometheus metrics
+│       ├── model.py            # ML pipeline construction and prediction helpers
+│       ├── persistence.py      # Save/load, metadata, pointers, promotion logic
 │       └── ...
-├── monitoring/
-│   ├── prometheus.yml         # Prometheus config (local + remote_write)
-│   └── alerts.yml             # Example alert rules
-├── tests/
-│   ├── test_api.py
-│   ├── test_versioning.py
-│   └── test_promotion.py
-├── docker-compose.product.yml # Product/API deployment stack
-├── docker-compose.monitor.yml # Monitoring stack (Prometheus/Grafana)
-├── docker-compose.yml         # Lightweight local development compose
-├── Dockerfile                 # Build textclf-api image
-├── client_demo.py             # Example usage of the generated Python client
-├── .env.example               # Example environment variables (no secrets)
+├── tests/                      # pytest test suite
+├── textclf_client/             # Generated Python SDK package
+├── ui/                         # Streamlit frontend
+├── Dockerfile
+├── docker-compose.product.yml
+├── docker-compose.monitor.yml
+├── docker-compose.yml
+├── client_demo.py              # Example SDK consumer
+├── client_config.yaml          # Client-side configuration example
+├── pyproject.toml
+├── requirements.txt
+├── Makefile
+├── .env.example
 └── README.md
 ```
 
@@ -180,50 +238,57 @@ curl -X POST "https://e2epraiip.onrender.com/predict?model=stable" \
 
 ## Authentication
 
-Protected endpoints use Bearer token authentication.
+Protected routes use Bearer token authentication.
 
-Protected routes include:
-
-- `/predict`
-- `/models`
-- `/version`
-- `/whoami`
-
-Tokens are issued using:
+Tokens are issued with:
 
 ```bash
 python scripts/issue_token.py \
   --subject client-demo \
   --client-id client-demo \
-  --scopes predict:run version:read whoami:read health:read
+  --scopes predict:run version:read whoami:read health:read \
+  --rotation-group client-demo
 ```
 
-The generated SDK supports authenticated usage through `AuthenticatedClient`.
+The raw token should be stored outside the repository. For the demo client, the token path is configured through:
+
+```env
+CLIENT_DEMO_TOKEN_FILE=../practice_sprint_secrets/client_demo_token.txt
+```
+
+Before running local scripts that depend on `.env`, load environment variables:
+
+```bash
+set -a
+source .env
+set +a
+```
 
 ---
 
 ## Generated Python SDK
 
-The repository includes a generated OpenAPI-based Python SDK under:
-
-```text
-textclf_client/
-```
-
-Regenerate the SDK:
+Regenerate the SDK from a running local API with documentation enabled:
 
 ```bash
 openapi-python-client generate \
-  --url http://localhost:8000/openapi.json \
+  --url http://127.0.0.1:8000/openapi.json \
   --overwrite \
   --output-path textclf_client
 ```
 
-Example usage:
+Run the demo client:
 
 ```bash
 python client_demo.py
 ```
+
+The demo client uses:
+
+- `AuthenticatedClient`
+- `PredictRequest`
+- bearer token loaded from `CLIENT_DEMO_TOKEN_FILE`
+- explicit model selection
 
 ---
 
@@ -240,6 +305,7 @@ set +a
 Run the API locally:
 
 ```bash
+SHOW_DOCS=1 INTERNAL_ONLY_ENABLED=false RATE_LIMIT_ENABLED=0 \
 uvicorn textclf.api:app \
   --host 127.0.0.1 \
   --port 8000 \
@@ -247,7 +313,7 @@ uvicorn textclf.api:app \
   --reload
 ```
 
-Run the Streamlit UI:
+Run the Streamlit UI locally:
 
 ```bash
 streamlit run ui/app.py
@@ -267,52 +333,134 @@ mypy src
 
 ---
 
-## Docker
+## Docker Usage
 
-Run product stack:
+Start the product stack:
 
 ```bash
 docker compose -p textclf-product -f docker-compose.product.yml up -d
 ```
 
-Run monitoring stack:
+Start the monitoring stack:
 
 ```bash
 docker compose -p textclf-monitor -f docker-compose.monitor.yml up -d
 ```
 
-Stop containers:
+Stop the product stack:
 
 ```bash
-docker compose down
+docker compose -p textclf-product -f docker-compose.product.yml down
 ```
+
+Stop the monitoring stack:
+
+```bash
+docker compose -p textclf-monitor -f docker-compose.monitor.yml down
+```
+
+The product stack exposes the UI to the host. The API is intended to remain internal to the Docker network in production-style compose usage, while the UI and monitoring tools are the main user-facing entry points.
 
 ---
 
 ## Monitoring
 
-Default local endpoints:
+Typical local endpoints:
 
 ```text
-API:        http://localhost:8000
-Swagger:    http://localhost:8000/docs
-UI:         http://localhost:8501
-Prometheus: http://localhost:9090
-Grafana:    http://localhost:3000
+Streamlit UI: http://localhost:8501
+Prometheus:   http://localhost:9090
+Grafana:      http://localhost:3000
+```
+
+When running the API directly outside Docker, these are also available if docs are enabled:
+
+```text
+API:          http://127.0.0.1:8000
+Swagger Docs: http://127.0.0.1:8000/docs
+OpenAPI JSON: http://127.0.0.1:8000/openapi.json
+```
+
+Useful Prometheus queries:
+
+```promql
+up{job="textclf-api"}
+```
+
+```promql
+prediction_requests_total{job="textclf-api"}
+```
+
+```promql
+sum(rate(prediction_requests_total{job="textclf-api"}[5m]))
+```
+
+```promql
+histogram_quantile(
+  0.95,
+  sum(rate(prediction_latency_seconds_bucket{job="textclf-api"}[5m])) by (le)
+)
+```
+
+---
+
+## API Example
+
+Example authenticated request:
+
+```bash
+TOKEN="$(cat ../practice_sprint_secrets/client_demo_token.txt)"
+
+curl -X POST "http://127.0.0.1:8000/predict?model=stable" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["Hockey fans were ecstatic after the playoff win."],
+    "return_probabilities": false
+  }'
+```
+
+---
+
+## Testing
+
+Current tests cover:
+
+- API smoke path with isolated temporary model artifacts
+- dataset loading and split invariants
+- model training and prediction
+- artifact save/load/versioning behavior
+- promotion behavior
+
+Run all checks:
+
+```bash
+pytest
+mypy src
 ```
 
 ---
 
 ## CI/CD
 
-GitHub Actions workflows:
+GitHub Actions currently provide:
 
-- CI pipeline:
-  - pytest
-  - mypy
-- Docker pipeline:
-  - build image
-  - push image to GHCR
+- CI workflow:
+  - dependency installation
+  - `mypy src`
+  - `pytest -q`
+- Docker workflow:
+  - Docker build
+  - login to GHCR
+  - push image tags to GitHub Container Registry
+
+Planned CI/CD work:
+
+- dependency pinning refinement
+- release tagging
+- deployment workflow
+- branch protection and required checks
+- production deployment automation
 
 ---
 
@@ -321,22 +469,25 @@ GitHub Actions workflows:
 Implemented:
 
 - FastAPI inference API
-- Model versioning and promotion
-- Typed OpenAPI schema
-- Generated Python SDK
-- Token-based authentication
+- typed request/response schemas
+- model versioning and promotion
+- artifact metadata and pointer resolution
+- generated Python SDK
+- token-based authentication and scopes
 - Streamlit UI
-- Docker deployment
+- Docker product and monitoring stacks
 - Prometheus monitoring
 - Grafana integration
-- Structured logging
-- pytest + mypy quality gates
+- structured logging
+- pytest and mypy quality gates
 - GitHub Actions CI
 - GHCR image publishing
 
 Remaining work:
 
 - dependency pinning refinement
-- deployment automation
+- Makefile modernization
+- client utility cleanup
 - final CI/CD polish
+- production deployment automation
 - cloud deployment hardening
