@@ -3,6 +3,7 @@ from pathlib import Path
 from textclf_api_client import AuthenticatedClient
 from textclf_api_client.api.default import (
     health_health_get,
+    models_models_get,
     predict_predict_post,
     version_version_get,
     whoami_whoami_get,
@@ -11,8 +12,14 @@ from textclf_api_client.models.predict_request import PredictRequest
 
 
 API_BASE_URL = "http://127.0.0.1:8000"
-CLIENT_DEMO_TOKEN_FILE = Path(os.getenv("CLIENT_DEMO_TOKEN_FILE"))
-MODEL_SELECTOR = "model_20260313_175256-experiment5.joblib"
+client_demo_token_file = os.getenv("CLIENT_DEMO_TOKEN_FILE")
+if not client_demo_token_file:
+    raise EnvironmentError(
+        "CLIENT_DEMO_TOKEN_FILE is not set. Load .env first with: "
+        "set -a && source .env && set +a"
+    )
+CLIENT_DEMO_TOKEN_FILE = Path(client_demo_token_file)
+MODEL_SELECTOR = os.getenv("CLIENT_DEMO_MODEL", "stable")
 
 
 def read_token(path: Path) -> str:
@@ -36,6 +43,12 @@ def main() -> None:
         raise_on_unexpected_status=False,
     )
 
+    print("=== CLIENT CONFIG ===")
+    print("Base URL:", API_BASE_URL)
+    print("Model selector:", MODEL_SELECTOR)
+    print("Token file:", CLIENT_DEMO_TOKEN_FILE)
+    print()
+
     print("=== HEALTH CHECK ===")
     health = health_health_get.sync_detailed(client=client)
     print("Status:", health.status_code)
@@ -46,6 +59,12 @@ def main() -> None:
     whoami = whoami_whoami_get.sync_detailed(client=client)
     print("Status:", whoami.status_code)
     print("Parsed:", whoami.parsed)
+    print()
+
+    print("=== MODELS ===")
+    models = models_models_get.sync_detailed(client=client)
+    print("Status:", models.status_code)
+    print("Parsed:", models.parsed)
     print()
 
     print("=== VERSION ===")
@@ -73,8 +92,13 @@ def main() -> None:
     )
 
     print("Status:", prediction.status_code)
-    print("Raw content:", prediction.content)
-    print("Parsed:", prediction.parsed)
+    if prediction.parsed is None:
+        print("Raw content:", prediction.content)
+        return
+
+    print("Labels:", prediction.parsed.labels)
+    print("Probabilities:", prediction.parsed.probabilities)
+    print("Model:", prediction.parsed.model)
 
 
 if __name__ == "__main__":
