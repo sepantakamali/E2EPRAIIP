@@ -14,7 +14,7 @@ def main() -> int:
     p.add_argument("--report-out", type=str, default="")
     args = p.parse_args()
 
-    Xtr, Xte, ytr, yte = load_split(DEFAULT.categories, DEFAULT.test_size, DEFAULT.random_state)
+    Xtr, Xte, ytr, yte = load_split(DEFAULT.categories, DEFAULT.test_size, DEFAULT.random_state, DEFAULT.shuffle)
     pipe, meta = load_model(args.model_path)
     preds = predict(pipe, Xte)
     acc = sum(int(a == b) for a, b in zip(preds, yte)) / len(yte)

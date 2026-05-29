@@ -21,4 +21,4 @@ def train(pipe: Pipeline, X_train: List[str], y_train: List[int]) -> Pipeline:
 
 def predict(pipe: Pipeline, texts: List[str]) -> List[int]:
     # sklearn returns ndarray; turn into List[int]
-    return pipe.predict(texts).tolist() # type: ignore[no-any-return]
+    return pipe.predict(texts).tolist()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .__init__ import __version__
+from textclf import __version__
 
 import hashlib
 import secrets
@@ -184,7 +184,7 @@ def key_from_header(request: Request) -> str:
     return request.headers.get("x-api-key") or _extract_client_ip(request)
 
 
-def rate_limit_handler(request: Request, exc: Exception):
+def rate_limit_handler(request: Request, exc: Exception) -> Response:
     return _rate_limit_exceeded_handler(request, cast(RateLimitExceeded, exc))
 
 
@@ -277,11 +277,11 @@ def enforce_internal_only(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Internal access only")
 
 # Optional: probabilities if your pipeline has predict_proba
-def _predict_probabilities_safe(pipe, texts: List[str]) -> Optional[List[List[float]]]:
+def _predict_probabilities_safe(pipe: Any, texts: List[str]) -> Optional[List[List[float]]]:
     if hasattr(pipe, "predict_proba"):
         try:
             probabilities = pipe.predict_proba(texts)
-            return probabilities.tolist()  # type: ignore[no-any-return]
+            return probabilities.tolist()
         except Exception:
             return None
     return None
@@ -407,7 +407,7 @@ def _model_state_from_artifact_path(path: str, resolved: str) -> ModelState:
     )
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     try:
         _load_into_state()
     except FileNotFoundError:
@@ -463,7 +463,10 @@ def _resolve_request_id(request: Request) -> tuple[str, bool]:
 
 
 @app.middleware("http")
-async def request_id_middleware(request: Request, call_next):
+async def request_id_middleware(
+    request: Request,
+    call_next: Callable[[Request], Any],
+) -> Response:
     request_id, request_id_from_client = _resolve_request_id(request)
     request.state.request_id = request_id
     request.state.request_id_from_client = request_id_from_client
@@ -499,7 +502,7 @@ app.add_middleware(
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     # fallback should never happen — middleware always sets request_id
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
@@ -525,11 +528,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 
-def limit_value():
+def limit_value() -> str:
     return os.getenv("RATE_LIMIT_PREDICT", "60/minute")
 
-def limit_if_enabled_dynamic():
-    def _wrap(fn):
+def limit_if_enabled_dynamic() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def _wrap(fn: Callable[..., Any]) -> Callable[..., Any]:
         if os.getenv("RATE_LIMIT_ENABLED", "1") == "1":
             return limiter.limit(limit_value)(fn)
         return fn
@@ -567,7 +570,7 @@ def health(request: Request) -> dict[str, Any]:
 
 
 @app.get("/ready")
-def ready(request: Request):
+def ready(request: Request) -> dict[str, bool]:
     enforce_internal_only(request)
     return {"ready": STATE["pipe"] is not None}
 
@@ -614,7 +617,7 @@ def version(
 
 
 @app.get("/whoami")
-def whoami(principal: Principal = Depends(require_scopes("whoami:read"))):
+def whoami(principal: Principal = Depends(require_scopes("whoami:read"))) -> dict[str, Any]:
     state = STATE.get("state")
     return {
         "principal": principal.model_dump(),
@@ -637,7 +640,7 @@ def models(principal: Principal = Depends(require_scopes("models:read"))) -> dic
 
 
 @app.get("/metrics")
-def metrics():
+def metrics() -> Response:
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
@@ -655,7 +658,6 @@ def predict(
     ),
     principal: Principal = Depends(require_scopes("predict:run")),
 ) -> PredictResponse:
-    body = PredictRequest.model_validate(payload)
     start = time.perf_counter()
     # Accumulate all errors together--server/client... enough for now.
     try:
@@ -678,7 +680,7 @@ def predict(
         if not payload.texts:
             PRED_ERRORS.inc()
             raise HTTPException(status_code=422, detail="No texts provided.")
-        if len(body.texts) > MAX_TEXTS:
+        if len(payload.texts) > MAX_TEXTS:
             PRED_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Too many texts; max is {MAX_TEXTS}.")
         too_long = [text for text in payload.texts if len(text) > MAX_TEXT_LEN]
