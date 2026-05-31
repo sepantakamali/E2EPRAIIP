@@ -62,7 +62,7 @@ def validate_scopes(scopes: list[str]) -> None:
     if unknown:
         valid = ", ".join(sorted(VALID_SCOPES))
         invalid = ", ".join(unknown)
-        raise ValueError(f"Unknown scope(s): {invalid}. Valid scopes: {valid}")
+        raise ValueError(f"\n\tUnknown scope(s): {invalid}.\n\tValid scopes: {valid}")
 
 
 def find_latest_active_token_in_group(
@@ -70,8 +70,7 @@ def find_latest_active_token_in_group(
     rotation_group: str,
 ) -> dict[str, Any] | None:
     candidates = [
-        record
-        for record in registry["tokens"]
+        record for record in registry["tokens"]
         if record.get("rotation_group") == rotation_group and record.get("active") is True
     ]
     if not candidates:
@@ -106,7 +105,7 @@ def issue_token(args: argparse.Namespace) -> None:
 
     existing_ids = {record.get("token_id") for record in registry["tokens"]}
     if token_id in existing_ids:
-        raise ValueError(f"Token id already exists: {token_id}")
+        raise ValueError(f"Token ID already exists: {token_id}")
 
     record = {
         "token_id": token_id,
@@ -123,6 +122,9 @@ def issue_token(args: argparse.Namespace) -> None:
         "rotation_group": rotation_group,
     }
 
+    # Self-replacement is not allowed because token rotation must create
+    # a new successor token. Allowing a token to replace itself would
+    # corrupt the rotation history and create an invalid lifecycle chain.
     if args.replaces == token_id:
         raise ValueError("A token cannot replace itself")
 
@@ -130,21 +132,28 @@ def issue_token(args: argparse.Namespace) -> None:
         found_old = False
         for old in registry["tokens"]:
             if old.get("token_id") == args.replaces:
-                old["replaced_by"] = token_id
-                old["active"] = False
-                found_old = True
-                break
+                if rotation_group == old.get("rotation_group"):
+                    old["replaced_by"] = token_id
+                    old["active"] = False
+                    found_old = True
+                    break
+                else:
+                    raise ValueError(
+                        f"\n\tRotation group mismatch\n"
+                        f"\tReplaced token belongs to '{old.get("rotation_group")}'\n"
+                        f"\tNew token belongs to '{rotation_group}'\n"
+                        )
         if not found_old:
-            raise ValueError(f"--replaces token not found: {args.replaces}")
+            raise ValueError(f"Replaced token not found: {args.replaces}")
 
     registry["tokens"].append(record)
     save_registry(path, registry)
 
-    print("Token issued successfully.")
+    print("✅ Token issued successfully!")
     print(f"Token file: {path}")
     print(f"Token ID: {token_id}")
     print("")
-    print("RAW TOKEN — copy now; it is not stored again:")
+    print("RAW TOKEN—¡COPY NOW! IT IS NOT SHOWN AGAIN:")
     print(raw_token)
 
 
@@ -181,11 +190,20 @@ def main() -> None:
 
     missing = [
         name
-        for name in ("subject", "client_id", "scopes")
+        for name in ("subject", "client_id", "scopes") # Required arguments
         if getattr(args, name) in (None, [])
     ]
     if missing:
         parser.error("missing required arguments: " + ", ".join(f"--{name.replace('_', '-')}" for name in missing))
+
+    if args.ttl_days <= 0:
+        raise ValueError("--ttl-days must be positive")
+
+    if args.token_bytes < 32:
+        raise ValueError("--token-bytes must be at least 32")
+    
+    if args.replaces and args.replace_latest:
+        raise ValueError("Use either --replaces or --replace-latest, not both")
 
     issue_token(args)
 
