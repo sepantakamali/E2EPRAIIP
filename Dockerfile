@@ -7,19 +7,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy project metadata and source (source MUST be present to build the wheel)
+# Copy pinned runtime dependencies first for better layer caching and reproducible installs.
+COPY requirements.txt ./
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy project metadata and source after dependency installation.
 COPY pyproject.toml ./
 COPY src ./src
 COPY ui ./ui
 COPY img ./img
 
-# Install project (include API deps). For a slim image you can do just "." instead.
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir ".[dev]"
+# Install the local project without resolving unpinned dependencies again.
+RUN pip install --no-cache-dir --no-deps .
 
-COPY artifacts ./artifacts
-
-# Add under your build args
+# Default model selector. The actual artifacts are mounted at runtime.
 ARG MODEL_POINTER=latest
 ENV MODEL_POINTER=${MODEL_POINTER}
 
@@ -28,7 +31,7 @@ EXPOSE 8000
 # Create non-root user
 RUN useradd -u 10001 -m appuser
 
-# Ensure /app and artifacts are owned by appuser
+# Runtime artifact directory. Model artifacts are not baked into the image.
 RUN mkdir -p /app/artifacts && chown -R appuser:appuser /app
 
 # Switch to non-root user
