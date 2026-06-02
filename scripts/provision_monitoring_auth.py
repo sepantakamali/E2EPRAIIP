@@ -59,17 +59,17 @@ def provision_monitoring_auth(args: argparse.Namespace) -> None:
         _write_secret(grafana_password_path, grafana_password)
 
     print("Monitoring authentication secrets provisioned successfully:\n")
-    print(f"  Prometheus password: {prometheus_password_path}")
-    print(f"  nginx htpasswd:     {metrics_htpasswd_path}")
+    print(f"\tPrometheus password:\t {prometheus_password_path}\n")
+    print(f"\tnginx htpasswd:\t {metrics_htpasswd_path}")
 
     if args.generate_grafana_password:
-        print(f"  Grafana password:   {grafana_password_path}")
+        print(f"\n\tGrafana password:\t {grafana_password_path}")
 
     print("\nGenerated credentials:")
-    print(f"  Prometheus username: {PROM_USERNAME}")
+    print(f"\tPrometheus username:\t {PROM_USERNAME}")
 
     if args.generate_grafana_password:
-        print("  Grafana username:   admin")
+        print("\tGrafana username: admin")
 
 
 def build_parser() -> argparse.ArgumentParser:
