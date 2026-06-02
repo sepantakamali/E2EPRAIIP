@@ -44,4 +44,4 @@ groups:
           severity: info
         annotations:
           summary: "textclf API has no prediction traffic"
-          description: "No prediction requests have been observed for 30 minutes. This may be expected in development, but in deployment it can indicate UI/API routing or authentication issues."
+          description: "No prediction requests have been observed for 30 minutes."
