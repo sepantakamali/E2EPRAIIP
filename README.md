@@ -214,7 +214,6 @@ Current deployment-related files:
 │       ├── config.py           # Project configuration defaults
 │       ├── data.py             # Dataset loading and train/test splitting
 │       ├── logging_conf.py     # Logging configuration
-│       ├── metrics.py          # Prometheus metrics
 │       ├── model.py            # ML pipeline construction and prediction helpers
 │       ├── persistence.py      # Save/load, metadata, pointers, promotion logic
 │       └── ...
@@ -248,6 +247,18 @@ python scripts/issue_token.py \
   --client-id client-demo \
   --scopes predict:run version:read whoami:read health:read \
   --rotation-group client-demo
+```
+
+```text
+Available scopes can be listed with:
+```
+
+```bash
+python scripts/issue_token.py --list-scopes
+```
+
+```text
+Token rotation supports either explicit replacement with `--replaces <token-id>` or automatic replacement of the newest active token in a rotation group using `--replace-latest`.
 ```
 
 The raw token should be stored outside the repository. For the demo client, the token path is configured through:
@@ -289,6 +300,10 @@ The demo client uses:
 - `PredictRequest`
 - bearer token loaded from `CLIENT_DEMO_TOKEN_FILE`
 - explicit model selection
+
+```text
+Model selection supports pointer names such as `stable` and `latest`, specific model IDs, or artifact filenames depending on API configuration.
+```
 
 ---
 
@@ -432,7 +447,7 @@ Current tests cover:
 - artifact save/load/versioning behavior
 - promotion behavior
 
-Run all checks:
+Run all quality checks:
 
 ```bash
 pytest
@@ -454,13 +469,35 @@ GitHub Actions currently provide:
   - login to GHCR
   - push image tags to GitHub Container Registry
 
+
 Planned CI/CD work:
 
-- dependency pinning refinement
 - release tagging
 - deployment workflow
 - branch protection and required checks
 - production deployment automation
+
+
+## Dependency Management
+
+Dependency management uses a two-layer approach:
+
+- `pyproject.toml` defines project and development dependencies
+- `requirements.txt` pins runtime dependency versions for reproducible local, Docker, and CI environments
+
+Install runtime dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Install the project in editable mode:
+
+```bash
+pip install -e .
+```
+
+This project currently treats `requirements.txt` as the runtime lock strategy.
 
 ---
 
@@ -485,7 +522,6 @@ Implemented:
 
 Remaining work:
 
-- dependency pinning refinement
 - Makefile modernization
 - client utility cleanup
 - final CI/CD polish
