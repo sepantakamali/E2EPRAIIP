@@ -559,7 +559,12 @@ except Exception:
 
 # ---------- Endpoints ----------
 @app.get("/health")
-def health(request: Request) -> dict[str, Any]:
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/health/details")
+def health_details(request: Request) -> dict[str, Any]:
     enforce_internal_only(request)
     state = STATE["state"]
     return {
@@ -570,8 +575,7 @@ def health(request: Request) -> dict[str, Any]:
 
 
 @app.get("/ready")
-def ready(request: Request) -> dict[str, bool]:
-    enforce_internal_only(request)
+def ready() -> dict[str, bool]:
     return {"ready": STATE["pipe"] is not None}
 
 
@@ -640,7 +644,8 @@ def models(principal: Principal = Depends(require_scopes("models:read"))) -> dic
 
 
 @app.get("/metrics")
-def metrics() -> Response:
+def metrics(request: Request) -> Response:
+    enforce_internal_only(request)
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
