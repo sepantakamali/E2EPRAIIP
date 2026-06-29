@@ -2,7 +2,7 @@
 
 Modern text classification inference platform with a FastAPI backend, Streamlit UI, model artifact versioning, token-based authentication, Docker deployment, Prometheus/Grafana monitoring, and a generated Python SDK.
 
-> Repository: https://github.com/sepantakamali/E2EPRAIIP
+> Repository: <https://github.com/sepantakamali/E2EPRAIIP>
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TD
     UI --> API
     Prometheus --> Proxy
     Proxy --> API
-    Prometheus --> Grafana
+    Grafana --> Prometheus
 ```
 
 ---
@@ -113,9 +113,10 @@ Protected endpoints include:
 
 Operational endpoints include:
 
-- `GET /health`
-- `GET /ready`
-- `GET /metrics`
+- `GET /health` (public liveness endpoint)
+- `GET /ready` (public readiness endpoint)
+- `GET /health/details` (internal diagnostics endpoint)
+- `GET /metrics` (internal Prometheus endpoint)
 - `GET /openapi.json` when documentation is enabled
 - `GET /docs` when documentation is enabled
 
@@ -195,6 +196,12 @@ Current deployment-related files:
 - `docker-compose.yml` as a lightweight local development compose setup
 - GitHub Actions workflow for tests and type checking
 - GitHub Actions workflow for Docker image publishing to GHCR
+- Oracle Cloud Infrastructure (OCI) Ubuntu Server deployment
+- Public IP with SSH key authentication
+- GitHub Container Registry (GHCR) image distribution
+- Docker Compose orchestration
+- host-mounted model artifacts
+- environment-driven model selection through MODEL_POINTER
 
 ---
 
@@ -374,7 +381,13 @@ Stop the monitoring stack:
 docker compose -p textclf-monitor -f docker-compose.monitor.yml down
 ```
 
-The product stack exposes the UI to the host. The API is intended to remain internal to the Docker network in production-style compose usage, while the UI and monitoring tools are the main user-facing entry points.
+The product stack exposes the UI to the host. In local Docker Compose deployments, the API remains internal to the Docker network while the UI and monitoring services are exposed.
+
+The Oracle Cloud Infrastructure deployment uses a VM-level deployment where the FastAPI container is exposed on port `8000`. In this deployment:
+
+- `/health` and `/ready` are public operational endpoints.
+- `/health/details` and `/metrics` remain internal-only.
+- `/predict`, `/version`, `/models`, and `/whoami` require Bearer authentication.
 
 ---
 
@@ -465,18 +478,255 @@ GitHub Actions currently provide:
   - `mypy src`
   - `pytest -q`
 - Docker workflow:
-  - Docker build
-  - login to GHCR
-  - push image tags to GitHub Container Registry
+  - Multi-architecture Docker build (`linux/amd64`, `linux/arm64`)
+  - GHCR authentication
+  - Image publishing to GitHub Container Registry
+  - Image tagging (`latest`, `main`, `sha-<commit>`)
+  - GitHub Actions build cache reuse
 
 
-Planned CI/CD work:
+Implemented:
+- GitHub Actions CI
+- Multi-architecture Docker image publishing
+- GHCR image registry
+- Production deployment to Oracle Cloud Infrastructure Ubuntu Server
+- Docker Compose-based deployment
+- SSH-based server administration
 
-- release tagging
-- deployment workflow
-- branch protection and required checks
-- production deployment automation
+Remaining:
+- Automated CD (GitHub Actions → SSH → docker compose pull && docker compose up -d)
+- DNS configuration
+- HTTPS (Let's Encrypt)
+- Infrastructure as Code (Terraform)
 
+
+## Deployment
+
+### Deployment Journey
+
+The deployment process was developed incrementally:
+
+1. Local development using Uvicorn.
+2. Containerized execution with Docker Compose.
+3. Validation on a local Ubuntu Server virtual machine.
+4. Production deployment to an Oracle Cloud Infrastructure virtual machine.
+5. GitHub Container Registry (GHCR) for image distribution.
+6. (Planned) Automated deployment through GitHub Actions.
+
+### Container Registry
+
+Application images are published automatically to GitHub Container Registry (GHCR).
+
+Published tags include:
+
+```text
+latest
+main
+sha-<commit>
+```
+
+Multi-architecture images are built for:
+
+```text
+linux/amd64
+linux/arm64
+```
+
+allowing deployment on both x86_64 and ARM64 systems.
+
+### Docker Compose Deployment
+
+A production-style deployment can be performed using Docker Compose.
+
+Example deployment layout:
+
+```text
+/home/<user>/textclf
+├── docker-compose.yml
+└── artifacts/
+```
+
+The deployment stack uses:
+
+- GHCR-hosted container images
+- Docker Engine
+- Docker Compose orchestration
+- host-mounted model artifacts
+- environment-driven model selection through `MODEL_POINTER`
+- Oracle Cloud Infrastructure (OCI) VM running Ubuntu Server 24.04 LTS
+- SSH key authentication
+
+
+### Model Artifact Deployment
+
+Model artifacts are intentionally stored outside the application image.
+
+Artifacts are mounted from the host:
+
+```text
+Host:      /home/<user>/textclf/artifacts
+Container: /app/artifacts
+```
+
+Benefits:
+
+- model updates do not require image rebuilds
+- stable/latest promotion remains independent from application releases
+- multiple model versions can coexist on the deployment host
+
+### Local VM Deployment
+
+Before moving to Oracle Cloud Infrastructure, the deployment flow was validated on a local Ubuntu Server VM.
+
+The local VM stage verified:
+
+- SSH-based administration from macOS
+- Docker Engine installation
+- Docker group configuration for non-root container management
+- Docker Compose deployment
+- GHCR authentication and image pulls
+- host-mounted artifact persistence
+- runtime model resolution through `MODEL_POINTER`
+- local health checks against the FastAPI container
+
+This stage provided a safe environment for learning the deployment mechanics before reproducing the same pattern on a public cloud VM.
+
+### Oracle Cloud Infrastructure Deployment
+
+The current public deployment runs on an Oracle Cloud Infrastructure VM with Ubuntu Server 24.04 LTS.
+
+The cloud deployment includes:
+
+- OCI Virtual Cloud Network (VCN)
+- public subnet
+- Internet Gateway
+- Security List ingress rules for SSH and API access
+- public IPv4 address
+- SSH key authentication
+- Docker Engine and Docker Compose
+- GHCR-authenticated image pulls
+- host-mounted model artifacts
+- FastAPI container exposed on port `8000`
+
+The deployed API is reachable through the VM public IP. Public exposure is limited by endpoint design: liveness and readiness are public, prediction endpoints require Bearer authentication, and diagnostics plus metrics remain internal-only.
+
+### Deployment Validation
+
+Verify deployment health:
+
+```bash
+curl http://<host>:8000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+`/health` is intentionally a minimal public endpoint used for liveness checks by deployment infrastructure and uptime monitors. Runtime diagnostics, model metadata, and application version information are available through `/health/details`, which is restricted to internal requests.
+
+External clients should not be able to access the diagnostics endpoint.
+
+```bash
+curl http://<host>:8000/health/details
+```
+
+Expected:
+
+```json
+{
+  "detail": "Internal access only"
+}
+```
+
+### Ubuntu Server Validation
+
+The deployment workflow has been validated on both a local Ubuntu Server VM and an Oracle Cloud Infrastructure Ubuntu Server VM.
+
+Validated components:
+
+- Docker Engine
+- Docker Compose
+- SSH key authentication
+- GHCR authentication and image pulls
+- Multi-architecture image publishing (`linux/amd64`, `linux/arm64`)
+- Docker Compose deployment
+- Host-mounted model artifacts
+- Runtime model resolution through `MODEL_POINTER`
+- Health endpoint verification
+- Oracle Cloud Infrastructure networking (VCN, subnet, Internet Gateway, Security Lists)
+- Public API accessibility through OCI ingress rules
+- Docker group configuration for non-root container management
+
+Validated deployment flow:
+
+```text
+GitHub Actions
+↓
+GHCR
+↓
+Ubuntu Server
+↓
+Docker Compose
+↓
+FastAPI Container
+```
+
+### Current Deployment Status
+
+Implemented:
+
+- Docker image publishing through GitHub Actions
+- Multi-architecture image builds
+- GHCR-based image distribution
+- Docker Compose deployment
+- SSH-based server administration
+- External model artifact mounting
+- Oracle Cloud Infrastructure (OCI) deployment
+- Public health endpoint
+- Internal diagnostics endpoint
+- Public API deployment validation
+
+Remaining:
+
+- Automated deployment from GitHub Actions
+- DNS
+- HTTPS (Let's Encrypt)
+- Cloud hardening
+
+### Production Deployment
+
+```text
+GitHub
+   │
+   ▼
+GitHub Actions
+   │
+   ▼
+GitHub Container Registry (GHCR)
+   │
+   ▼
+Oracle Cloud Infrastructure
+        │
+        ▼
+Ubuntu Server
+        │
+        ▼
+Docker Compose
+        │
+        ▼
++-------------------------------+
+| FastAPI                       |
+| Streamlit                     |
+| Metrics Proxy                 |
++-------------------------------+
+        │
+        ▼
+Host-mounted Artifacts
+```
 
 ## Dependency Management
 
@@ -497,7 +747,14 @@ Install the project in editable mode:
 pip install -e .
 ```
 
-This project currently treats `requirements.txt` as the runtime lock strategy.
+Runtime dependencies are pinned in `requirements.txt` and used by:
+
+- local development environments
+- Docker image builds
+- GitHub Actions workflows
+- deployment environments
+
+This provides reproducible builds across development, CI, and deployment targets.
 
 ---
 
@@ -519,11 +776,18 @@ Implemented:
 - pytest and mypy quality gates
 - GitHub Actions CI
 - GHCR image publishing
+- Docker Compose deployment workflow
+- multi-architecture container publishing (`amd64`, `arm64`)
+- Oracle Cloud Infrastructure deployment
+- Production deployment on Ubuntu Server
+- Public health and readiness endpoints
+- Internal diagnostics endpoint
+- Host-mounted model artifact persistence
 
 Remaining work:
 
-- Makefile modernization
-- client utility cleanup
-- final CI/CD polish
-- production deployment automation
-- cloud deployment hardening
+- Automated continuous deployment
+- DNS
+- HTTPS (Let's Encrypt)
+- Infrastructure as Code (Terraform)
+- Cloud hardening
