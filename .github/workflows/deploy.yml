@@ -29,4 +29,20 @@ jobs:
             docker compose -p textclf up -d
 
             docker compose -p textclf ps
-            curl -fsS http://localhost:8000/health
+
+            echo "Waiting for API health check..."
+            sleep 3
+
+            for i in {1..30}; do
+              if curl -fsS http://localhost:8000/health; then
+                echo "Deployment successful"
+                exit 0
+              fi
+
+              echo "Health check failed; retrying in 2 seconds... ($i/30)"
+              sleep 2
+            done
+
+            echo "Deployment failed: API did not become healthy"
+            docker compose -p textclf logs --tail=100 api
+            exit 1
