@@ -2,11 +2,16 @@ name: Deploy
 
 on:
   workflow_dispatch: {}
+  workflow_run:
+    workflows: ["Docker"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   deploy:
     name: Deploy to server
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Deploy over SSH
