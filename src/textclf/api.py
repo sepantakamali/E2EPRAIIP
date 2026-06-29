@@ -88,6 +88,7 @@ AUTH_ENABLED = _env_variable_enabled(os.getenv("AUTH_ENABLED"), default=True)
 AUTH_TOKENS_FILE = os.getenv("AUTH_TOKENS_FILE")
 TRUST_PROXY_HEADERS = _env_variable_enabled(os.getenv("TRUST_PROXY_HEADERS"), default=False)
 INTERNAL_ONLY_ENABLED = _env_variable_enabled(os.getenv("INTERNAL_ONLY_ENABLED"), default=True)
+# Add internal networks ...
 INTERNAL_NETWORKS = [
     ip_network(value.strip())
     for value in os.getenv(
