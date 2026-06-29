@@ -23,10 +23,21 @@ jobs:
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
 
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            if [ -z "$COMMIT_SHA" ]; then
+              COMMIT_SHA="${{ github.sha }}"
+            fi
+
+            export IMAGE_TAG="sha-${COMMIT_SHA:0:7}"
+            IMAGE="ghcr.io/sepantakamali/e2epraiip:${IMAGE_TAG}"
+
             echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker compose -p textclf pull
-            docker compose -p textclf up -d
+            echo "Deploying image: ${IMAGE}"
+
+            docker pull "${IMAGE}"
+            docker compose -p textclf pull api
+            docker compose -p textclf up -d api
 
             docker compose -p textclf ps
 
@@ -36,6 +47,15 @@ jobs:
             for i in {1..30}; do
               if curl -fsS http://localhost:8000/health; then
                 echo "Deployment successful"
+
+                docker compose -p textclf images
+
+                docker inspect textclf-api \
+                  --format 'Image={{.Image}}'
+
+                docker image inspect "${IMAGE}" \
+                  --format 'ImageId={{.Id}}'
+
                 exit 0
               fi
 
