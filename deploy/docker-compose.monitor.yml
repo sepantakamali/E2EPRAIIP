@@ -2,52 +2,66 @@ services:
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: prometheus
+    restart: unless-stopped
+
     ports:
       - "9090:9090"
+
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
+
     secrets:
       - prometheus_metrics_password
       - gc_prom_password
-    networks:
-      - observability
+
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
       - --web.listen-address=:9090
 
+    networks:
+      - textclf_observability
+
   grafana:
     image: grafana/grafana:11.2.0
     container_name: grafana
+    restart: unless-stopped
+
     ports:
       - "3000:3000"
+
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+
     volumes:
       - grafana_data:/var/lib/grafana
+
     secrets:
       - grafana_admin_password
-    networks:
-      - observability
+
     depends_on:
       - prometheus
+
+    networks:
+      - textclf_observability
 
 volumes:
   prometheus_data:
   grafana_data:
 
 networks:
-  observability:
+  textclf_observability:
     external: true
-    name: textclf_observability
 
 secrets:
   prometheus_metrics_password:
     file: ${PROMETHEUS_METRICS_PASSWORD_FILE}
+
   grafana_admin_password:
     file: ${GRAFANA_ADMIN_PASSWORD_FILE}
+
   gc_prom_password:
     file: ${GC_PROM_PASSWORD_FILE}
