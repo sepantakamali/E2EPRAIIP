@@ -36,19 +36,20 @@ jobs:
             echo "Deploying image: ${IMAGE}"
 
             docker pull "${IMAGE}"
-            docker compose -p textclf pull api
-            docker compose -p textclf up -d api
+            docker compose -p textclf --env-file .env -f deploy/docker-compose.product.yml pull
 
-            docker compose -p textclf ps
+            docker compose -p textclf --env-file .env -f deploy/docker-compose.product.yml up -d
+
+            docker compose -p textclf --env-file .env -f deploy/docker-compose.product.yml ps
 
             echo "Waiting for API health check..."
             sleep 3
 
             for i in {1..30}; do
-              if curl -fsS http://localhost:8000/health; then
+              if docker exec textclf-api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"; then
                 echo "Deployment successful"
 
-                docker compose -p textclf images
+                docker compose -p textclf --env-file .env -f deploy/docker-compose.product.yml images
 
                 docker inspect textclf-api \
                   --format 'Image={{.Image}}'
@@ -64,5 +65,5 @@ jobs:
             done
 
             echo "Deployment failed: API did not become healthy"
-            docker compose -p textclf logs --tail=100 api
+            docker compose -p textclf --env-file .env -f deploy/docker-compose.product.yml logs --tail=100
             exit 1

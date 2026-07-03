@@ -30,6 +30,12 @@ services:
       - observability
     command: >
       uvicorn textclf.api:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   ui:
     image: ghcr.io/sepantakamali/e2epraiip:${IMAGE_TAG:-latest}
@@ -49,7 +55,14 @@ services:
     command: >
       streamlit run ui/app.py --server.address 0.0.0.0 --server.port 8501
     depends_on:
-      - textclf-api
+      textclf-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   metrics-proxy:
     image: nginx:1.27-alpine
@@ -64,7 +77,8 @@ services:
     networks:
       - observability
     depends_on:
-      - textclf-api
+      textclf-api:
+        condition: service_healthy
 
 networks:
   app:

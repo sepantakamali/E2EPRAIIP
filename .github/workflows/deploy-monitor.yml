@@ -1,0 +1,91 @@
+
+
+name: Deploy Monitoring
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/docker-compose.monitor.yml"
+      - "monitoring/**"
+      - "grafana/**"
+      - ".github/workflows/deploy-monitor.yml"
+
+jobs:
+  deploy-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy monitoring stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "Deploying monitoring stack..."
+
+            docker compose \
+              -p textclf-monitor \
+              --env-file .env \
+              -f deploy/docker-compose.monitor.yml \
+              pull
+
+            docker compose \
+              -p textclf-monitor \
+              --env-file .env \
+              -f deploy/docker-compose.monitor.yml \
+              up -d
+
+            docker compose \
+              -p textclf-monitor \
+              --env-file .env \
+              -f deploy/docker-compose.monitor.yml \
+              ps
+
+            echo "Waiting for Prometheus and Grafana..."
+            sleep 5
+
+            for i in {1..30}; do
+              PROMETHEUS_OK=0
+              GRAFANA_OK=0
+
+              if curl -fsS http://127.0.0.1:9090/-/ready > /dev/null; then
+                PROMETHEUS_OK=1
+              fi
+
+              if curl -fsS http://127.0.0.1:3000/api/health > /dev/null; then
+                GRAFANA_OK=1
+              fi
+
+              if [ "$PROMETHEUS_OK" -eq 1 ] && [ "$GRAFANA_OK" -eq 1 ]; then
+                echo "Monitoring deployment successful"
+
+                docker compose \
+                  -p textclf-monitor \
+                  --env-file .env \
+                  -f deploy/docker-compose.monitor.yml \
+                  images
+
+                exit 0
+              fi
+
+              echo "Monitoring health check failed; retrying in 2 seconds... ($i/30)"
+              sleep 2
+            done
+
+            echo "Monitoring deployment failed"
+
+            docker compose \
+              -p textclf-monitor \
+              --env-file .env \
+              -f deploy/docker-compose.monitor.yml \
+              logs --tail=100
+
+            exit 1
