@@ -1,5 +1,3 @@
-
-
 name: Deploy Monitoring
 
 on:
@@ -31,23 +29,11 @@ jobs:
 
             echo "Deploying monitoring stack..."
 
-            docker compose \
-              -p textclf-monitor \
-              --env-file .env \
-              -f deploy/docker-compose.monitor.yml \
-              pull
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml pull
 
-            docker compose \
-              -p textclf-monitor \
-              --env-file .env \
-              -f deploy/docker-compose.monitor.yml \
-              up -d
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml up -d
 
-            docker compose \
-              -p textclf-monitor \
-              --env-file .env \
-              -f deploy/docker-compose.monitor.yml \
-              ps
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml ps
 
             echo "Waiting for Prometheus and Grafana..."
             sleep 5
@@ -66,13 +52,7 @@ jobs:
 
               if [ "$PROMETHEUS_OK" -eq 1 ] && [ "$GRAFANA_OK" -eq 1 ]; then
                 echo "Monitoring deployment successful"
-
-                docker compose \
-                  -p textclf-monitor \
-                  --env-file .env \
-                  -f deploy/docker-compose.monitor.yml \
-                  images
-
+                docker compose --env-file .env -f deploy/docker-compose.monitor.yml images
                 exit 0
               fi
 
@@ -82,10 +62,6 @@ jobs:
 
             echo "Monitoring deployment failed"
 
-            docker compose \
-              -p textclf-monitor \
-              --env-file .env \
-              -f deploy/docker-compose.monitor.yml \
-              logs --tail=100
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml logs --tail=100
 
             exit 1

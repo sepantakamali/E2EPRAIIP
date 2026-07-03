@@ -1,4 +1,4 @@
-name: Deploy
+name: textclf-product
 
 on:
   workflow_dispatch: {}
