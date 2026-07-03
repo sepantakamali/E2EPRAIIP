@@ -1,4 +1,4 @@
-
+name: textclf-product
 
 services:
   textclf-api:
