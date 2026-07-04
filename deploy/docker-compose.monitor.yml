@@ -18,8 +18,8 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
       - --web.listen-address=:9090
-      - --storage.tsdb.retention.time=3d
-      - --storage.tsdb.retention.size=512MB
+      - --storage.tsdb.retention.time=2h
+      - --storage.tsdb.retention.size=256MB
     networks:
       - textclf_observability
     healthcheck:
