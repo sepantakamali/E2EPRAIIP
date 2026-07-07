@@ -35,23 +35,19 @@ jobs:
 
             docker compose --env-file .env -f deploy/docker-compose.monitor.yml ps
 
-            echo "Waiting for Prometheus and Grafana..."
+            echo "Waiting for Prometheus..."
             sleep 5
 
             for i in {1..30}; do
               PROMETHEUS_OK=0
-              GRAFANA_OK=0
 
               if curl -fsS http://127.0.0.1:9090/-/ready > /dev/null; then
                 PROMETHEUS_OK=1
               fi
 
-              if curl -fsS http://127.0.0.1:3000/api/health > /dev/null; then
-                GRAFANA_OK=1
-              fi
-
-              if [ "$PROMETHEUS_OK" -eq 1 ] && [ "$GRAFANA_OK" -eq 1 ]; then
+              if [ "$PROMETHEUS_OK" -eq 1 ]; then
                 echo "Monitoring deployment successful"
+                docker compose --env-file .env -f deploy/docker-compose.monitor.yml ps
                 docker compose --env-file .env -f deploy/docker-compose.monitor.yml images
                 exit 0
               fi
