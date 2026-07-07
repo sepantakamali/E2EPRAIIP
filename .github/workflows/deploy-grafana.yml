@@ -1,0 +1,38 @@
+
+
+name: Deploy Grafana
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "grafana/dashboards/**"
+      - "scripts/sync_grafana_dashboard.sh"
+      - ".github/workflows/deploy-grafana.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-grafana:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Validate dashboard JSON
+        run: |
+          jq empty grafana/dashboards/e2epraiip-overview.json
+
+      - name: Sync Grafana dashboard
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+        run: |
+          chmod +x scripts/sync_grafana_dashboard.sh
+          scripts/sync_grafana_dashboard.sh grafana/dashboards/e2epraiip-overview.json

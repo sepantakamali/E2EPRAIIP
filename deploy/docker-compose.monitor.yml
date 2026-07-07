@@ -29,35 +29,35 @@ services:
       retries: 3
       start_period: 20s
 
-  grafana:
-    image: grafana/grafana:11.2.0
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
-    volumes:
-      - grafana_data:/var/lib/grafana
-    secrets:
-      - grafana_admin_password
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    networks:
-      - textclf_observability
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s     
+  # grafana:
+  #   image: grafana/grafana:11.2.0
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     GF_SECURITY_ADMIN_USER: admin
+  #     GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #   secrets:
+  #     - grafana_admin_password
+  #   depends_on:
+  #     prometheus:
+  #       condition: service_healthy
+  #   networks:
+  #     - textclf_observability
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 20s     
 
 
 volumes:
   prometheus_data:
-  grafana_data:
+  # grafana_data:
 
 networks:
   textclf_observability:
@@ -67,8 +67,8 @@ secrets:
   prometheus_metrics_password:
     file: ${PROMETHEUS_METRICS_PASSWORD_FILE}
 
-  grafana_admin_password:
-    file: ${GRAFANA_ADMIN_PASSWORD_FILE}
+  # grafana_admin_password:
+  #   file: ${GRAFANA_ADMIN_PASSWORD_FILE}
 
   gc_prom_password:
     file: ${GC_PROM_PASSWORD_FILE}
