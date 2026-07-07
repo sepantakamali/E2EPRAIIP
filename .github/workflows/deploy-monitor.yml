@@ -16,6 +16,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync deploy files
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
+          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
+          SOURCE: "deploy/ monitoring/"
+          TARGET: ${{ secrets.DEPLOY_PATH }}
+
       - name: Deploy monitoring stack
         uses: appleboy/ssh-action@v1.2.0
         with:
