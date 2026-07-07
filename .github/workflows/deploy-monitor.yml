@@ -19,14 +19,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Sync deploy files
-        uses: easingthemes/ssh-deploy@v5.1.0
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
-          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
-          SOURCE: "deploy/ monitoring/"
-          TARGET: ${{ secrets.DEPLOY_PATH }}
+      - name: Sync monitoring files
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/textclf_deploy
+          chmod 600 ~/.ssh/textclf_deploy
+
+          ssh -i ~/.ssh/textclf_deploy \
+            -o StrictHostKeyChecking=accept-new \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/monitoring'"
+
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            deploy/docker-compose.monitor.yml \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/deploy/docker-compose.monitor.yml"
+
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            monitoring/prometheus.yml \
+            monitoring/alerts.yml \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/monitoring/"
 
       - name: Deploy monitoring stack
         uses: appleboy/ssh-action@v1.2.0
