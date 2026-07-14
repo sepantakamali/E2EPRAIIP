@@ -48,8 +48,8 @@ services:
       API_BEARER_TOKEN_FILE: /run/secrets/ui_api_token
     secrets:
       - ui_api_token
-    ports:
-      - "8501:8501"
+    expose:
+      - "8501"
     networks:
       - app
     command: >
@@ -79,6 +79,20 @@ services:
     depends_on:
       textclf-api:
         condition: service_healthy
+
+web-proxy:
+  image: nginx:1.27-alpine
+  container_name: textclf-web-proxy
+  restart: unless-stopped
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - ../nginx/ui.conf:/etc/nginx/conf.d/default.conf:ro
+  networks:
+    - app
+  depends_on:
+    - ui
 
 networks:
   app:
