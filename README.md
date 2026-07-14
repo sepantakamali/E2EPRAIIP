@@ -1,6 +1,6 @@
 # End-to-End Production-Ready AI Inference Platform
 
-Modern text classification inference platform with a FastAPI backend, Streamlit UI, model artifact versioning, token-based authentication, Docker deployment, Prometheus/Grafana monitoring, and a generated Python SDK.
+Modern text classification inference platform with a FastAPI backend, Streamlit UI, model artifact versioning, token-based authentication, Docker deployment, Prometheus monitoring, Grafana Cloud dashboards, automated CI/CD, and generated Python SDK.
 
 > Repository: <https://github.com/sepantakamali/E2EPRAIIP>
 
@@ -12,10 +12,11 @@ Modern text classification inference platform with a FastAPI backend, Streamlit 
 - Versioned model artifacts with metadata, `latest`, and `stable` pointer resolution
 - A Streamlit UI for local/product-style interaction with the inference service
 - Bearer-token authentication with scoped tokens
-- Prometheus metrics and Grafana dashboards for operational monitoring
-- Docker Compose stacks for product and monitoring environments
+- Prometheus metrics, Prometheus alert rules, and Grafana Cloud dashboards
+- Docker Compose stacks for product and monitoring environments under `deploy/`
 - A generated OpenAPI Python SDK for downstream integration
 - Automated quality gates with `pytest`, `mypy`, GitHub Actions, and GHCR image publishing
+- GitHub Actions workflows for CI, GHCR image publishing, product deployment, monitoring deployment, and Grafana dashboard-as-code
 
 ---
 
@@ -32,7 +33,7 @@ flowchart LR
     Registry --> API[FastAPI API]
     API --> UI[Streamlit UI]
     API --> Metrics[Prometheus Metrics]
-    Metrics --> Grafana[Grafana Dashboard]
+    Metrics --> Grafana[Grafana Cloud Dashboard]
     API --> Schema[OpenAPI Schema]
     Schema --> SDK[Generated Python SDK]
 ```
@@ -90,12 +91,14 @@ flowchart TD
     ProductCompose --> Proxy[Metrics Proxy Container]
 
     MonitorCompose[Monitoring Compose Stack] --> Prometheus[Prometheus Container]
-    MonitorCompose --> Grafana[Grafana Container]
 
     UI --> API
-    Prometheus --> Proxy
-    Proxy --> API
-    Grafana --> Prometheus
+    API --> Proxy
+    Proxy --> Prometheus
+
+    Prometheus --> Alerts[Prometheus Alert Rules]
+    Prometheus --> RemoteWrite[Grafana Cloud Prometheus]
+    RemoteWrite --> Dashboard[Grafana Cloud Dashboard]
 ```
 
 ---
@@ -177,31 +180,45 @@ It provides:
 Monitoring support includes:
 
 - Prometheus scraping
-- Grafana dashboards
-- prediction request counters
-- prediction error counters
-- prediction latency histograms
-- process CPU and memory metrics
-- Python runtime metrics
-- file descriptor metrics
+- Prometheus alert rules
+- Grafana Cloud dashboards provisioned from version-controlled JSON
+- dashboard-as-code synchronized through GitHub Actions
+- Prometheus `remote_write` to Grafana Cloud  
+- latency percentiles
+- process metrics
+- runtime metrics
 - structured application logs
 
 ### Deployment
 
-Current deployment-related files:
+### Deployment Files
 
-- `Dockerfile` for building the application image
-- `docker-compose.product.yml` for the product stack
-- `docker-compose.monitor.yml` for the monitoring stack
-- `docker-compose.yml` as a lightweight local development compose setup
-- GitHub Actions workflow for tests and type checking
-- GitHub Actions workflow for Docker image publishing to GHCR
+- Dockerfile
+- docker-compose.product.yml
+- docker-compose.monitor.yml
+- docker-compose.yml
+- grafana/dashboards/e2epraiip-overview.json
+- scripts/sync_grafana_dashboard.sh
+
+deploy/
+    docker-compose.product.yml
+    docker-compose.monitor.yml
+
+monitoring/
+    prometheus.yml
+    alerts.yml
+
+grafana/
+    dashboards/
+
+### Deployment Capabilities
+
 - Oracle Cloud Infrastructure (OCI) Ubuntu Server deployment
-- Public IP with SSH key authentication
-- GitHub Container Registry (GHCR) image distribution
 - Docker Compose orchestration
+- GitHub Container Registry (GHCR) image distribution
 - host-mounted model artifacts
 - environment-driven model selection through MODEL_POINTER
+- GitHub Actions deployment workflows
 
 ---
 
@@ -209,30 +226,42 @@ Current deployment-related files:
 
 ```text
 .
+├── .github/
+│   └── workflows/              # CI, Docker, product, monitoring, and Grafana workflows
 ├── artifacts/                  # Model artifacts, pointers, and run logs
-├── monitoring/                 # Prometheus and Grafana configuration
+├── deploy/                     # VM deployment Compose files
+│   ├── docker-compose.product.yml
+│   └── docker-compose.monitor.yml
+├── grafana/                    # Grafana Cloud dashboard-as-code
+│   └── dashboards/
+│       └── e2epraiip-overview.json
+├── monitoring/                 # Prometheus scrape and alert configuration
+│   ├── prometheus.yml
+│   └── alerts.yml
 ├── nginx/                      # Metrics proxy configuration
+│   └── metrics.conf
 ├── logs/                       # Local application log files
-├── scripts/                    # Token, setup, and utility scripts
+├── scripts/                    # Token, setup, dashboard sync, and utility scripts
+│   ├── issue_token.py
+│   └── sync_grafana_dashboard.sh
 ├── src/
 │   └── textclf/
-│       ├── api.py              # FastAPI app, routes, auth integration, runtime state
-│       ├── cli.py              # CLI utilities for model operations
-│       ├── config.py           # Project configuration defaults
-│       ├── data.py             # Dataset loading and train/test splitting
-│       ├── logging_conf.py     # Logging configuration
-│       ├── model.py            # ML pipeline construction and prediction helpers
-│       ├── persistence.py      # Save/load, metadata, pointers, promotion logic
-│       └── ...
-├── tests/                      # pytest test suite
+│       ├── api.py
+│       ├── cli.py
+│       ├── config.py
+│       ├── data.py
+│       ├── logging_conf.py
+│       ├── model.py
+│       └── persistence.py
+├── tests/
 ├── textclf_client/             # Generated Python SDK package
 ├── ui/                         # Streamlit frontend
 ├── Dockerfile
-├── docker-compose.product.yml
-├── docker-compose.monitor.yml
-├── docker-compose.yml
-├── client_demo.py              # Example SDK consumer
-├── client_config.yaml          # Client-side configuration example
+├── docker-compose.product.yml  # Local/product-style compose file
+├── docker-compose.monitor.yml  # Local monitoring compose file
+├── docker-compose.yml          # Lightweight local development compose file
+├── client_demo.py
+├── client_config.yaml
 ├── pyproject.toml
 ├── requirements.txt
 ├── Makefile
@@ -265,7 +294,7 @@ python scripts/issue_token.py --list-scopes
 ```
 
 ```text
-Token rotation supports either explicit replacement with `--replaces <token-id>` or automatic replacement of the newest active token in a rotation group using `--replace-latest`.
+Tokens support scoped permissions and rotation.
 ```
 
 The raw token should be stored outside the repository. For the demo client, the token path is configured through:
@@ -360,30 +389,30 @@ mypy src
 Start the product stack:
 
 ```bash
-docker compose -p textclf-product -f docker-compose.product.yml up -d
+docker compose --env-file .env -f deploy/docker-compose.product.yml up -d
 ```
 
 Start the monitoring stack:
 
 ```bash
-docker compose -p textclf-monitor -f docker-compose.monitor.yml up -d
+docker compose --env-file .env -f deploy/docker-compose.monitor.yml up -d
 ```
 
 Stop the product stack:
 
 ```bash
-docker compose -p textclf-product -f docker-compose.product.yml down
+docker compose --env-file .env -f deploy/docker-compose.product.yml down
 ```
 
 Stop the monitoring stack:
 
 ```bash
-docker compose -p textclf-monitor -f docker-compose.monitor.yml down
+docker compose --env-file .env -f deploy/docker-compose.monitor.yml down
 ```
 
 The product stack exposes the UI to the host. In local Docker Compose deployments, the API remains internal to the Docker network while the UI and monitoring services are exposed.
 
-The Oracle Cloud Infrastructure deployment uses a VM-level deployment where the FastAPI container is exposed on port `8000`. In this deployment:
+The Oracle Cloud Infrastructure deployment exposes the Streamlit UI on port `8501`. The FastAPI container remains on the internal Docker network and is accessed only by the UI and the metrics proxy. In this deployment:
 
 - `/health` and `/ready` are public operational endpoints.
 - `/health/details` and `/metrics` remain internal-only.
@@ -393,13 +422,14 @@ The Oracle Cloud Infrastructure deployment uses a VM-level deployment where the 
 
 ## Monitoring
 
-Typical local endpoints:
+Typical deployed endpoints:
 
 ```text
-Streamlit UI: http://localhost:8501
-Prometheus:   http://localhost:9090
-Grafana:      http://localhost:3000
+Streamlit UI: http://<host>:8501
+Prometheus:   http://<host>:9090
+Grafana Cloud: managed dashboard
 ```
+Prometheus runs locally on the VM, evaluates alert rules, and forwards metrics to Grafana Cloud using remote_write.
 
 When running the API directly outside Docker, these are also available if docs are enabled:
 
@@ -429,6 +459,21 @@ histogram_quantile(
   sum(rate(prediction_latency_seconds_bucket{job="textclf-api"}[5m])) by (le)
 )
 ```
+
+### Dashboard
+
+The Grafana Cloud dashboard includes:
+
+- API availability
+- Requests per second
+- Predictions served (last hour)
+- Prediction error count
+- Prediction error rate
+- P05, P50, P95 and P99 latency
+- CPU usage
+- API memory usage (RSS)
+- Open file descriptors
+- Python garbage collection activity
 
 ---
 
@@ -483,18 +528,24 @@ GitHub Actions currently provide:
   - Image publishing to GitHub Container Registry
   - Image tagging (`latest`, `main`, `sha-<commit>`)
   - GitHub Actions build cache reuse
-
+- Product deployment workflow
+- Monitoring deployment workflow
+- Grafana deployment workflow
 
 Implemented:
+
 - GitHub Actions CI
 - Multi-architecture Docker image publishing
 - GHCR image registry
-- Production deployment to Oracle Cloud Infrastructure Ubuntu Server
-- Docker Compose-based deployment
+- Automated product deployment
+- Automated monitoring deployment
+- Automated Grafana Cloud dashboard synchronization
+- Oracle Cloud Infrastructure deployment
+- Docker Compose deployment
 - SSH-based server administration
 
 Remaining:
-- Automated CD (GitHub Actions → SSH → docker compose pull && docker compose up -d)
+
 - DNS configuration
 - HTTPS (Let's Encrypt)
 - Infrastructure as Code (Terraform)
@@ -511,7 +562,9 @@ The deployment process was developed incrementally:
 3. Validation on a local Ubuntu Server virtual machine.
 4. Production deployment to an Oracle Cloud Infrastructure virtual machine.
 5. GitHub Container Registry (GHCR) for image distribution.
-6. (Planned) Automated deployment through GitHub Actions.
+6. Automated product deployment through GitHub Actions.
+7. Automated monitoring deployment through GitHub Actions.
+8. Automated Grafana Cloud dashboard synchronization.
 
 ### Container Registry
 
@@ -541,9 +594,25 @@ A production-style deployment can be performed using Docker Compose.
 Example deployment layout:
 
 ```text
-/home/<user>/textclf
-├── docker-compose.yml
-└── artifacts/
+/home/deploy/textclf
+├── .env
+├── artifacts/
+├── deploy/
+│   ├── docker-compose.product.yml
+│   └── docker-compose.monitor.yml
+├── monitoring/
+│   ├── prometheus.yml
+│   └── alerts.yml
+├── nginx/
+│   └── metrics.conf
+└── logs/
+
+/home/deploy/textclf_secrets
+├── tokens.json
+├── ui_api_token.txt
+├── metrics.htpasswd
+├── prometheus_metrics_password.txt
+└── gc_prom_password.txt
 ```
 
 The deployment stack uses:
@@ -564,7 +633,7 @@ Model artifacts are intentionally stored outside the application image.
 Artifacts are mounted from the host:
 
 ```text
-Host:      /home/<user>/textclf/artifacts
+Host: /home/deploy/textclf/artifacts
 Container: /app/artifacts
 ```
 
@@ -600,22 +669,33 @@ The cloud deployment includes:
 - OCI Virtual Cloud Network (VCN)
 - public subnet
 - Internet Gateway
-- Security List ingress rules for SSH and API access
+- Security List ingress rules for SSH, UI, and monitoring access
 - public IPv4 address
 - SSH key authentication
 - Docker Engine and Docker Compose
 - GHCR-authenticated image pulls
 - host-mounted model artifacts
-- FastAPI container exposed on port `8000`
+- Streamlit UI exposed on port `8501`
+- FastAPI container accessible only within the Docker network
+- Prometheus exposed on port `9090`
+- Grafana Cloud used for dashboards
 
-The deployed API is reachable through the VM public IP. Public exposure is limited by endpoint design: liveness and readiness are public, prediction endpoints require Bearer authentication, and diagnostics plus metrics remain internal-only.
+The deployed UI is reachable through the VM public IP. Public exposure is limited by endpoint design: liveness and readiness are public, prediction endpoints require Bearer authentication, and diagnostics plus metrics remain internal-only.
 
 ### Deployment Validation
 
-Verify deployment health:
+Verify the public Streamlit UI is reachable:
 
 ```bash
-curl http://<host>:8000/health
+curl -I http://<host>:8501
+```
+
+Expected result: an HTTP 200 OK response from the Streamlit server.
+
+Verify the FastAPI service from inside the API container:
+
+```bash
+docker exec textclf-api python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"
 ```
 
 Expected response:
@@ -626,21 +706,29 @@ Expected response:
 }
 ```
 
-`/health` is intentionally a minimal public endpoint used for liveness checks by deployment infrastructure and uptime monitors. Runtime diagnostics, model metadata, and application version information are available through `/health/details`, which is restricted to internal requests.
-
-External clients should not be able to access the diagnostics endpoint.
+Verify Prometheus is running:
 
 ```bash
-curl http://<host>:8000/health/details
+curl -fsS http://127.0.0.1:9090/-/ready
 ```
 
-Expected:
+Expected output: Prometheus Server is Ready.
+
+Verify Prometheus can scrape the API metrics target:
+
+```bash
+curl -s http://127.0.0.1:9090/api/v1/targets | grep -o '"health":"[^"]*"'
+```
+
+Expected output:
 
 ```json
-{
-  "detail": "Internal access only"
-}
+"health":"up"
 ```
+
+The public UI is exposed on port `8501`. The FastAPI API runs inside Docker and is reached by the UI and metrics proxy over the internal Docker network.
+
+The `/health` endpoint is used for internal container and deployment checks. Runtime diagnostics, model metadata, and metrics are restricted to internal access and should not be exposed publicly.
 
 ### Ubuntu Server Validation
 
@@ -658,7 +746,7 @@ Validated components:
 - Runtime model resolution through `MODEL_POINTER`
 - Health endpoint verification
 - Oracle Cloud Infrastructure networking (VCN, subnet, Internet Gateway, Security Lists)
-- Public API accessibility through OCI ingress rules
+- Public UI and Prometheus accessibility through OCI ingress rules
 - Docker group configuration for non-root container management
 
 Validated deployment flow:
@@ -672,29 +760,30 @@ Ubuntu Server
 ↓
 Docker Compose
 ↓
-FastAPI Container
+FastAPI + Streamlit + Prometheus
+↓
+Grafana Cloud
 ```
 
-### Current Deployment Status
+### Deployment Status
 
 Implemented:
 
-- Docker image publishing through GitHub Actions
-- Multi-architecture image builds
-- GHCR-based image distribution
+- Automated product deployment
+- Automated monitoring deployment
+- Automated Grafana Cloud dashboard synchronization
+- Multi-architecture Docker image publishing to GHCR through GitHub Actions
 - Docker Compose deployment
-- SSH-based server administration
-- External model artifact mounting
-- Oracle Cloud Infrastructure (OCI) deployment
-- Public health endpoint
-- Internal diagnostics endpoint
-- Public API deployment validation
+- Oracle Cloud Infrastructure deployment
+- Host-mounted model artifacts
+- health, readiness, and internal diagnostics endpoints
+- Prometheus scraping and alert rules
+- Grafana Cloud dashboards through remote_write
 
 Remaining:
 
-- Automated deployment from GitHub Actions
 - DNS
-- HTTPS (Let's Encrypt)
+- HTTPS
 - Cloud hardening
 
 ### Production Deployment
@@ -719,11 +808,14 @@ Docker Compose
         │
         ▼
 +-------------------------------+
-| FastAPI                       |
 | Streamlit                     |
+| FastAPI                       |
 | Metrics Proxy                 |
+| Prometheus                    |
 +-------------------------------+
-        │
+        │                     │
+        │                     ▼
+        │               Grafana Cloud
         ▼
 Host-mounted Artifacts
 ```
@@ -762,31 +854,24 @@ This provides reproducible builds across development, CI, and deployment targets
 
 Implemented:
 
-- FastAPI inference API
-- typed request/response schemas
-- model versioning and promotion
-- artifact metadata and pointer resolution
+- FastAPI inference API with typed request/response schemas
+- token-based authentication with scoped access
 - generated Python SDK
-- token-based authentication and scopes
 - Streamlit UI
+- model versioning, promotion, artifact metadata, and pointer resolution
 - Docker product and monitoring stacks
-- Prometheus monitoring
-- Grafana integration
+- Prometheus monitoring with alert rules and Grafana Cloud dashboards
+- dashboard-as-code deployment through GitHub Actions
 - structured logging
 - pytest and mypy quality gates
-- GitHub Actions CI
-- GHCR image publishing
-- Docker Compose deployment workflow
+- GitHub Actions workflows for CI, GHCR image publishing, product deployment, monitoring deployment, and Grafana dashboard synchronization
 - multi-architecture container publishing (`amd64`, `arm64`)
-- Oracle Cloud Infrastructure deployment
-- Production deployment on Ubuntu Server
-- Public health and readiness endpoints
-- Internal diagnostics endpoint
-- Host-mounted model artifact persistence
+- Oracle Cloud Infrastructure deployment on Ubuntu Server
+- health, readiness, and internal diagnostics endpoints
+- host-mounted model artifact storage
 
 Remaining work:
 
-- Automated continuous deployment
 - DNS
 - HTTPS (Let's Encrypt)
 - Infrastructure as Code (Terraform)
