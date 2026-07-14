@@ -80,19 +80,19 @@ services:
       textclf-api:
         condition: service_healthy
 
-web-proxy:
-  image: nginx:1.27-alpine
-  container_name: textclf-web-proxy
-  restart: unless-stopped
-  ports:
-    - "80:80"
-    - "443:443"
-  volumes:
-    - ../nginx/ui.conf:/etc/nginx/conf.d/default.conf:ro
-  networks:
-    - app
-  depends_on:
-    - ui
+  web-proxy:
+    image: nginx:1.27-alpine
+    container_name: textclf-web-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/ui.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - app
+    depends_on:
+      - ui
 
 networks:
   app:
