@@ -43,7 +43,8 @@ jobs:
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
             nginx/metrics.conf \
-            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/nginx/metrics.conf"
+            nginx/ui.conf \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/nginx/"
           
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
