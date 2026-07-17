@@ -25,3 +25,7 @@ monitoring/prometheus.yml
 logs/
 
 !.env.example
+
+# certificates and private keys
+certbot/conf/
+certbot/www/
