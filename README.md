@@ -1,6 +1,8 @@
 # End-to-End Production-Ready AI Inference Platform
 
-Modern text classification inference platform with a FastAPI backend, Streamlit UI, model artifact versioning, token-based authentication, Docker deployment, Prometheus monitoring, Grafana Cloud dashboards, automated CI/CD, and generated Python SDK.
+A reusable production-ready AI inference platform demonstrating secure deployment, model serving, observability, authentication, CI/CD, and cloud-native infrastructure.
+
+The current reference application is a text classification model served through FastAPI, but the platform is designed to host multiple AI inference workloads.
 
 > Repository: <https://github.com/sepantakamali/E2EPRAIIP>
 
@@ -17,6 +19,7 @@ Modern text classification inference platform with a FastAPI backend, Streamlit 
 - A generated OpenAPI Python SDK for downstream integration
 - Automated quality gates with `pytest`, `mypy`, GitHub Actions, and GHCR image publishing
 - GitHub Actions workflows for CI, GHCR image publishing, product deployment, monitoring deployment, and Grafana dashboard-as-code
+- HTTPS deployment with Let's Encrypt and Nginx reverse proxy
 
 ---
 
@@ -219,6 +222,9 @@ grafana/
 - host-mounted model artifacts
 - environment-driven model selection through MODEL_POINTER
 - GitHub Actions deployment workflows
+- Nginx reverse proxy with HTTPS
+- Cloudflare DNS integration
+- Automatic TLS certificate provisioning with Let's Encrypt
 
 ---
 
@@ -240,6 +246,7 @@ grafana/
 │   └── alerts.yml
 ├── nginx/                      # Metrics proxy configuration
 │   └── metrics.conf
+│   └── ui.conf
 ├── logs/                       # Local application log files
 ├── scripts/                    # Token, setup, dashboard sync, and utility scripts
 │   ├── issue_token.py
@@ -410,9 +417,9 @@ Stop the monitoring stack:
 docker compose --env-file .env -f deploy/docker-compose.monitor.yml down
 ```
 
-The product stack exposes the UI to the host. In local Docker Compose deployments, the API remains internal to the Docker network while the UI and monitoring services are exposed.
+The public entry point is an Nginx reverse proxy serving https://hastikamali.com over ports 80 and 443. Streamlit, FastAPI, Prometheus, and the metrics proxy communicate only over internal Docker networks.
 
-The Oracle Cloud Infrastructure deployment exposes the Streamlit UI on port `8501`. The FastAPI container remains on the internal Docker network and is accessed only by the UI and the metrics proxy. In this deployment:
+In this deployment:
 
 - `/health` and `/ready` are public operational endpoints.
 - `/health/details` and `/metrics` remain internal-only.
@@ -420,14 +427,32 @@ The Oracle Cloud Infrastructure deployment exposes the Streamlit UI on port `850
 
 ---
 
+### Reverse Proxy
+
+The platform uses Nginx as the single public entry point.
+
+Features include:
+
+- TLS termination
+- Let's Encrypt certificates
+- HTTP→HTTPS redirect
+- HTTP/2
+- Reverse proxying
+- Internal Docker networking
+
 ## Monitoring
 
 Typical deployed endpoints:
 
 ```text
-Streamlit UI: http://<host>:8501
-Prometheus:   http://<host>:9090
-Grafana Cloud: managed dashboard
+Public UI:
+https://hastikamali.com
+
+Prometheus:
+localhost only
+
+Grafana:
+Grafana Cloud
 ```
 Prometheus runs locally on the VM, evaluates alert rules, and forwards metrics to Grafana Cloud using remote_write.
 
@@ -546,9 +571,9 @@ Implemented:
 
 Remaining:
 
-- DNS configuration
-- HTTPS (Let's Encrypt)
 - Infrastructure as Code (Terraform)
+- Production validation
+- Security hardening review
 
 
 ## Deployment
@@ -669,32 +694,44 @@ The cloud deployment includes:
 - OCI Virtual Cloud Network (VCN)
 - public subnet
 - Internet Gateway
-- Security List ingress rules for SSH, UI, and monitoring access
+- Security List ingress rules for SSH (22), HTTP (80), and HTTPS (443)
+- Prometheus bound to localhost
+- FastAPI accessible only within the Docker network
+- Streamlit served internally behind the Nginx reverse proxy
 - public IPv4 address
 - SSH key authentication
 - Docker Engine and Docker Compose
 - GHCR-authenticated image pulls
 - host-mounted model artifacts
-- Streamlit UI exposed on port `8501`
-- FastAPI container accessible only within the Docker network
-- Prometheus exposed on port `9090`
 - Grafana Cloud used for dashboards
+- Nginx reverse proxy serving the application over HTTPS
 
-The deployed UI is reachable through the VM public IP. Public exposure is limited by endpoint design: liveness and readiness are public, prediction endpoints require Bearer authentication, and diagnostics plus metrics remain internal-only.
+The deployed application is publicly available through https://hastikamali.com. Nginx terminates TLS and forwards requests to the internal Streamlit service. FastAPI remains internal to the Docker network and is accessed only by trusted services.
 
 ### Deployment Validation
 
 Verify the public Streamlit UI is reachable:
 
 ```bash
-curl -I http://<host>:8501
+curl -I https://hastikamali.com
 ```
 
-Expected result: an HTTP 200 OK response from the Streamlit server.
+Expected result: HTTP/2 200
+
+```bash
+curl -I http://hastikamali.com
+```
+
+Expected result: 
+
+```json
+301 Moved Permanently
+Location: https://hastikamali.com/
+```
 
 Verify the FastAPI service from inside the API container:
 
-```bash
+```text
 docker exec textclf-api python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"
 ```
 
@@ -726,7 +763,9 @@ Expected output:
 "health":"up"
 ```
 
-The public UI is exposed on port `8501`. The FastAPI API runs inside Docker and is reached by the UI and metrics proxy over the internal Docker network.
+The public application is served through Nginx over HTTPS at https://hastikamali.com.
+
+FastAPI, Streamlit, Prometheus, and the metrics proxy communicate over internal Docker networks. Only Nginx is exposed publicly.
 
 The `/health` endpoint is used for internal container and deployment checks. Runtime diagnostics, model metadata, and metrics are restricted to internal access and should not be exposed publicly.
 
@@ -746,7 +785,8 @@ Validated components:
 - Runtime model resolution through `MODEL_POINTER`
 - Health endpoint verification
 - Oracle Cloud Infrastructure networking (VCN, subnet, Internet Gateway, Security Lists)
-- Public UI and Prometheus accessibility through OCI ingress rules
+- Public HTTPS access through Nginx
+- Prometheus bound to localhost
 - Docker group configuration for non-root container management
 
 Validated deployment flow:
@@ -782,9 +822,9 @@ Implemented:
 
 Remaining:
 
-- DNS
-- HTTPS
-- Cloud hardening
+- Infrastructure as Code (Terraform)
+- Production security review
+- Operational documentation
 
 ### Production Deployment
 
@@ -818,6 +858,32 @@ Docker Compose
         │               Grafana Cloud
         ▼
 Host-mounted Artifacts
+```
+
+```text
+Internet
+      │
+      ▼
+ Cloudflare DNS
+      │
+      ▼
+hastikamali.com
+      │
+      ▼
+Nginx
+      │
+ ┌────┴────────────┐
+ ▼                 ▼
+Streamlit      FastAPI
+                    │
+                    ▼
+             Metrics Proxy
+                    │
+                    ▼
+              Prometheus
+                    │
+                    ▼
+             Grafana Cloud
 ```
 
 ## Dependency Management
@@ -872,7 +938,8 @@ Implemented:
 
 Remaining work:
 
-- DNS
-- HTTPS (Let's Encrypt)
+- Certificate renewal automation verification
 - Infrastructure as Code (Terraform)
-- Cloud hardening
+- Production security hardening
+- Operational documentation
+- Production validation checklist
