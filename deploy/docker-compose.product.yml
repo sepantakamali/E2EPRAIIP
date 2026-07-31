@@ -8,6 +8,7 @@ services:
     env_file:
       - ../.env
     environment:
+      ENV: ${ENV:-production}
       MODEL_POINTER: ${MODEL_POINTER:-stable}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_TO_FILE: ${LOG_TO_FILE:-1}
@@ -44,6 +45,7 @@ services:
     env_file:
       - ../.env
     environment:
+      ENV: ${ENV:-production}
       API_BASE_URL: http://textclf-api:8000
       API_BEARER_TOKEN_FILE: /run/secrets/ui_api_token
     secrets:
