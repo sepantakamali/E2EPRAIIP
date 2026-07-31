@@ -5,6 +5,13 @@ services:
     image: ghcr.io/sepantakamali/e2epraiip:${IMAGE_TAG:-latest}
     container_name: textclf-api
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
     env_file:
       - ../.env
     environment:
@@ -42,6 +49,13 @@ services:
     image: ghcr.io/sepantakamali/e2epraiip:${IMAGE_TAG:-latest}
     container_name: textclf-ui
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
     env_file:
       - ../.env
     environment:
@@ -70,6 +84,13 @@ services:
     image: nginx:1.27-alpine
     container_name: metrics-proxy
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /run:rw,nosuid,nodev,size=16m
+      - /var/cache/nginx:rw,nosuid,nodev,size=32m
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
     expose:
       - "8080"
     volumes:
@@ -86,6 +107,13 @@ services:
     image: nginx:1.27-alpine
     container_name: textclf-web-proxy
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /run:rw,nosuid,nodev,size=16m
+      - /var/cache/nginx:rw,nosuid,nodev,size=32m
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
     ports:
       - "80:80"
       - "443:443"
