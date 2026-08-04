@@ -54,8 +54,9 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    tmpfs:  
+    tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=64m
+      - /home/appuser/.streamlit:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700,size=4m
     env_file:
       - ../.env
     environment:
