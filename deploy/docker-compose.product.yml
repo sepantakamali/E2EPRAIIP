@@ -13,7 +13,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=64m
     env_file:
-      - ../textclf/.env
+      - ../.env
     environment:
       ENV: ${ENV:-production}
       MODEL_POINTER: ${MODEL_POINTER:-stable}
@@ -57,7 +57,7 @@ services:
     tmpfs:  
       - /tmp:rw,noexec,nosuid,nodev,size=64m
     env_file:
-      - ../textclf/.env
+      - ../.env
     environment:
       ENV: ${ENV:-production}
       API_BASE_URL: http://textclf-api:8000
