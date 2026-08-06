@@ -65,17 +65,53 @@ def validate_scopes(scopes: list[str]) -> None:
         raise ValueError(f"\n\tUnknown scope(s): {invalid}.\n\tValid scopes: {valid}")
 
 
+def parse_iso_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+
+    try:
+        timestamp = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+    if timestamp.tzinfo is None:
+        return None
+
+    return timestamp.astimezone(timezone.utc)
+
+
 def find_latest_active_token_in_group(
     registry: dict[str, Any],
     rotation_group: str,
 ) -> dict[str, Any] | None:
-    candidates = [
-        record for record in registry["tokens"]
-        if record.get("rotation_group") == rotation_group and record.get("active") is True
-    ]
+    now = utc_now()
+    candidates: list[dict[str, Any]] = []
+
+    for record in registry["tokens"]:
+        if record.get("rotation_group") != rotation_group:
+            continue
+
+        if record.get("active") is not True:
+            continue
+
+        if record.get("revoked_at") is not None:
+            continue
+
+        expires_at = parse_iso_timestamp(record.get("expires_at"))
+        if expires_at is None or expires_at <= now:
+            continue
+
+        candidates.append(record)
+
     if not candidates:
         return None
-    return max(candidates, key=lambda record: str(record.get("issued_at", "")))
+
+    return max(
+        candidates,
+        key=lambda record: str(record.get("issued_at", "")),
+    )
 
 
 def issue_token(args: argparse.Namespace) -> None:
