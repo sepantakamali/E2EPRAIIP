@@ -45,3 +45,38 @@ groups:
         annotations:
           summary: "textclf API has no prediction traffic"
           description: "No prediction requests have been observed for 30 minutes."
+      - alert: TextclfTokenRegistryInvalid
+        expr: textclf_token_registry_valid == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Textclf token registry is invalid"
+          description: "The production bearer-token registry failed validation."
+
+      - alert: TextclfActiveTokenExpired
+        expr: textclf_token_active_expired_total > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "An active Textclf token has expired"
+          description: "At least one token remains active after its expiry time."
+
+      - alert: TextclfTokenExpiresSoon
+        expr: textclf_token_days_remaining <= 14
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Textclf token expires soon"
+          description: "Token {{ $labels.token_id }} has {{ $value | printf \"%.1f\" }} days remaining."
+
+      - alert: TextclfTokenExpiresCritical
+        expr: textclf_token_days_remaining <= 7
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Textclf token expiry is imminent"
+          description: "Token {{ $labels.token_id }} has {{ $value | printf \"%.1f\" }} days remaining."
