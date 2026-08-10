@@ -20,7 +20,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from pydantic import ConfigDict  # pydantic v2
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import (
+    Counter,
+    Histogram,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+)
+from prometheus_client.core import GaugeMetricFamily
+from collections.abc import Iterable
+
+from prometheus_client.metrics_core import Metric
+from prometheus_client.registry import Collector
 
 from textclf.logging_conf import setup_logging
 from textclf.persistence import load_model, LATEST_PATH, STABLE_PATH, _pkg_version, _resolve_pointer_path, ARTIFACTS_DIR
@@ -38,6 +49,13 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from fastapi.responses import JSONResponse
+
+from textclf.token_audit import (
+    DEFAULT_WARNING_DAYS,
+    audit_registry,
+    load_registry,
+    utc_now,
+)
 
 PREDICTIONS = Counter("prediction_requests_total", "Total prediction requests")
 PRED_LATENCY = Histogram(
@@ -86,6 +104,115 @@ class TokenRecord(BaseModel):
 
 AUTH_ENABLED = _env_variable_enabled(os.getenv("AUTH_ENABLED"), default=True)
 AUTH_TOKENS_FILE = os.getenv("AUTH_TOKENS_FILE")
+
+class TokenAuditCollector(Collector):
+    def collect(self) -> Iterable[Metric]:
+        registry_valid = GaugeMetricFamily(
+            "textclf_token_registry_valid",
+            "Whether the token registry passed validation.",
+        )
+
+        active_expired = GaugeMetricFamily(
+            "textclf_token_active_expired_total",
+            "Active tokens that have expired.",
+        )
+
+        active_warning = GaugeMetricFamily(
+            "textclf_token_active_warning_total",
+            "Active tokens inside an expiry warning window.",
+        )
+
+        days_remaining = GaugeMetricFamily(
+            "textclf_token_days_remaining",
+            "Remaining token lifetime in days.",
+            labels=[
+                "token_id",
+                "client_id",
+                "rotation_group",
+            ],
+        )
+
+        if not AUTH_TOKENS_FILE:
+            registry_valid.add_metric([], 0)
+            active_expired.add_metric([], 0)
+            active_warning.add_metric([], 0)
+
+            yield registry_valid
+            yield active_expired
+            yield active_warning
+            yield days_remaining
+            return
+
+        try:
+            registry = load_registry(Path(AUTH_TOKENS_FILE))
+
+            errors, _, statuses = audit_registry(
+                registry,
+                now=utc_now(),
+                warning_days=list(DEFAULT_WARNING_DAYS),
+            )
+
+            expired_count = sum(
+                1
+                for status in statuses
+                if status["active"]
+                and not status["revoked"]
+                and status["expired"]
+            )
+
+            warning_count = sum(
+                1
+                for status in statuses
+                if status["active"]
+                and not status["revoked"]
+                and not status["expired"]
+                and status["days_remaining"] <= max(DEFAULT_WARNING_DAYS)
+            )
+
+            registry_valid.add_metric(
+                [],
+                0 if errors else 1,
+            )
+
+            active_expired.add_metric(
+                [],
+                expired_count,
+            )
+
+            active_warning.add_metric(
+                [],
+                warning_count,
+            )
+
+            for status in statuses:
+                if (
+                    status["active"]
+                    and not status["revoked"]
+                    and not status["expired"]
+                ):
+                    days_remaining.add_metric(
+                        [
+                            str(status["token_id"]),
+                            str(status["client_id"]),
+                            str(status["rotation_group"]),
+                        ],
+                        float(status["days_remaining"]),
+                    )
+
+        except Exception:
+            log.exception(
+                "Token audit metrics collection failed"
+            )
+
+            registry_valid.add_metric([], 0)
+            active_expired.add_metric([], 0)
+            active_warning.add_metric([], 0)
+
+        yield registry_valid
+        yield active_expired
+        yield active_warning
+        yield days_remaining
+
 TRUST_PROXY_HEADERS = _env_variable_enabled(os.getenv("TRUST_PROXY_HEADERS"), default=False)
 INTERNAL_ONLY_ENABLED = _env_variable_enabled(os.getenv("INTERNAL_ONLY_ENABLED"), default=True)
 # Add internal networks ...
@@ -290,6 +417,9 @@ def _predict_probabilities_safe(pipe: Any, texts: List[str]) -> Optional[List[Li
 # ----------- FastAPI app ----------
 setup_logging()
 log = logging.getLogger("textclf.api")
+
+# Registering token auditer
+REGISTRY.register(TokenAuditCollector())
 
 # Simple in-memory model state
 class ModelState(BaseModel):
