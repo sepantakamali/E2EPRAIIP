@@ -45,6 +45,7 @@ groups:
         annotations:
           summary: "textclf API has no prediction traffic"
           description: "No prediction requests have been observed for 30 minutes."
+      
       - alert: TextclfTokenRegistryInvalid
         expr: textclf_token_registry_valid == 0
         for: 5m
