@@ -65,7 +65,10 @@ groups:
           description: "At least one token remains active after its expiry time."
 
       - alert: TextclfTokenExpiresSoon
-        expr: textclf_token_days_remaining <= 14
+        expr: >-
+          (textclf_token_days_remaining <= 14)
+          and
+          (textclf_token_days_remaining > 7)
         for: 10m
         labels:
           severity: warning
