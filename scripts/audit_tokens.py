@@ -385,6 +385,8 @@ def main() -> int:
             is not None
         )
 
+        audit_timestamp = int(utc_now().timestamp())
+
         lines = [
             "# HELP textclf_token_registry_valid Whether the token registry passed validation.",
             "# TYPE textclf_token_registry_valid gauge",
@@ -397,6 +399,10 @@ def main() -> int:
             "# HELP textclf_token_active_warning_total Active tokens inside an expiry warning window.",
             "# TYPE textclf_token_active_warning_total gauge",
             f"textclf_token_active_warning_total {warning_active}",
+
+            "# HELP textclf_token_audit_timestamp_seconds Unix timestamp of the latest token audit.",
+            "# TYPE textclf_token_audit_timestamp_seconds gauge",
+            f"textclf_token_audit_timestamp_seconds {audit_timestamp}",
 
             "# HELP textclf_token_days_remaining Remaining token lifetime in days.",
             "# TYPE textclf_token_days_remaining gauge",

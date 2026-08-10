@@ -218,6 +218,7 @@ def test_prometheus_output_contains_expected_metrics(
     assert "textclf_token_active_expired_total 0" in metrics
     assert "textclf_token_active_warning_total 1" in metrics
     assert 'token_id="prometheus-test"' in metrics
+    assert "textclf_token_audit_timestamp_seconds" in metrics
 
     assert "token_hash" not in metrics
     assert "sha256:" not in metrics
