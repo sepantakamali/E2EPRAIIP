@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "textclf"
 version = "0.2.0"
-description = "A tiny classifier demo project"
+description = "AI Platform for inference models"
 requires-python = ">=3.9"
 dependencies = [
     "scikit-learn",
@@ -16,6 +16,9 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 
 [project.optional-dependencies]
 dev = [
