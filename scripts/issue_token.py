@@ -176,7 +176,7 @@ def issue_token(args: argparse.Namespace) -> None:
                 else:
                     raise ValueError(
                         f"\n\tRotation group mismatch\n"
-                        f"\tReplaced token belongs to '{old.get("rotation_group")}'\n"
+                        f"\tReplaced token belongs to '{old.get('rotation_group')}'\n"
                         f"\tNew token belongs to '{rotation_group}'\n"
                         )
         if not found_old:
