@@ -56,9 +56,13 @@ jobs:
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
-            src/textclf/__init__.py \
             src/textclf/token_store.py \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/admin_lib/textclf/"
+
+          ssh -i ~/.ssh/textclf_deploy \
+            -o StrictHostKeyChecking=accept-new \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            ": > '$DEPLOY_PATH/admin_lib/textclf/__init__.py'"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
@@ -72,6 +76,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -euo pipefail
+            
             cd ${{ secrets.DEPLOY_PATH }}
 
             echo "Validating token administration tooling..."
