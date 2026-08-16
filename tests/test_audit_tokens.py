@@ -46,6 +46,7 @@ def make_token(
         "revoked_at": revoked_at,
         "replaces": replaces,
         "replaced_by": replaced_by,
+        "overlap_until": None,
         "rotation_group": "test-service",
     }
 
@@ -256,3 +257,62 @@ def test_non_list_scopes_returns_two(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "scopes must be a list of strings" in result.stdout
+
+
+def test_active_replaced_token_with_valid_overlap_is_allowed(
+    tmp_path: Path,
+) -> None:
+    now = datetime.now(timezone.utc)
+
+    old = make_token(
+        token_id="old",
+        active=True,
+        replaced_by="new",
+    )
+    old["overlap_until"] = iso_z(
+        now + timedelta(minutes=15)
+    )
+
+    new = make_token(
+        token_id="new",
+        replaces="old",
+    )
+
+    registry = write_registry(
+        tmp_path,
+        [old, new],
+    )
+
+    result = run_audit(registry)
+
+    assert result.returncode == 0
+
+
+def test_expired_rotation_overlap_is_invalid(
+    tmp_path: Path,
+) -> None:
+    now = datetime.now(timezone.utc)
+
+    old = make_token(
+        token_id="old",
+        active=True,
+        replaced_by="new",
+    )
+    old["overlap_until"] = iso_z(
+        now - timedelta(minutes=1)
+    )
+
+    new = make_token(
+        token_id="new",
+        replaces="old",
+    )
+
+    registry = write_registry(
+        tmp_path,
+        [old, new],
+    )
+
+    result = run_audit(registry)
+
+    assert result.returncode == 2
+    assert "rotation overlap expired" in result.stdout

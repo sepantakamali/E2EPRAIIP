@@ -39,6 +39,7 @@ def write_token_registry(
                 "revoked_at": None,
                 "replaces": None,
                 "replaced_by": None,
+                "overlap_until": None,
                 "rotation_group": "collector-test",
             }
         ]

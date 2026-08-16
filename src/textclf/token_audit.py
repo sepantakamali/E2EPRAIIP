@@ -7,17 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from textclf.token_store import VALID_SCOPES, load_registry
+
 
 DEFAULT_WARNING_DAYS = (30, 14, 7, 1)
-
-VALID_SCOPES = {
-    "health:read",
-    "metrics:read",
-    "models:read",
-    "predict:run",
-    "version:read",
-    "whoami:read",
-}
 
 REQUIRED_FIELDS = {
     "token_id",
@@ -31,6 +24,7 @@ REQUIRED_FIELDS = {
     "revoked_at",
     "replaces",
     "replaced_by",
+    "overlap_until",
     "rotation_group",
 }
 
@@ -70,26 +64,6 @@ def parse_timestamp(
         )
 
     return timestamp.astimezone(timezone.utc)
-
-
-def load_registry(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as file:
-        registry = json.load(file)
-
-    if isinstance(registry, list):
-        registry = {"tokens": registry}
-
-    if not isinstance(registry, dict):
-        raise ValueError("Registry must be a JSON object")
-
-    records = registry.get("tokens")
-
-    if not isinstance(records, list):
-        raise ValueError(
-            "Registry must contain a 'tokens' list"
-        )
-
-    return registry
 
 
 def threshold_for(
@@ -292,10 +266,28 @@ def audit_registry(
                 )
 
             if record["active"] is True:
-                errors.append(
-                    f"{display_id}: replaced token "
-                    "is still marked active"
-                )
+                overlap_until_value = record.get("overlap_until")
+
+                if overlap_until_value is None:
+                    errors.append(
+                        f"{display_id}: replaced token is active "
+                        "without an overlap window"
+                    )
+                else:
+                    try:
+                        overlap_until = parse_timestamp(
+                            overlap_until_value,
+                            field="overlap_until",
+                            token_id=display_id,
+                        )
+                    except ValueError as exc:
+                        errors.append(str(exc))
+                    else:
+                        if overlap_until <= now:
+                            errors.append(
+                                f"{display_id}: rotation overlap expired "
+                                f"at {overlap_until_value}"
+                            )
 
         seconds_remaining = (
             expires_at - now

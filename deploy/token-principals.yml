@@ -1,0 +1,35 @@
+principals:
+  ui-service:
+    rotation_group: ui-service
+    subject: ui-service
+    client_id: ui-service
+
+    default_scopes:
+      - predict:run
+      - models:read
+      - version:read
+      - whoami:read
+
+    ttl_days: 90
+    overlap_minutes: 15
+
+    consumer:
+      type: docker-compose
+      secret_path: /home/deploy/textclf_secrets/ui_api_token.txt
+      container_secret_path: /run/secrets/ui_api_token
+      compose_file: /home/deploy/textclf/deploy/docker-compose.product.yml
+      compose_service: ui
+      container_name: textclf-ui
+      health_timeout_seconds: 60
+
+    verification:
+      type: api-whoami
+      endpoint: /whoami
+      expected_subject: ui-service
+      expected_client_id: ui-service
+
+    auto_rotation_supported: true
+
+  client-demo:
+    rotation_group: client-demo
+    auto_rotation_supported: false
