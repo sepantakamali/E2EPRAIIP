@@ -25,5 +25,6 @@ dev = [
     "pytest", "mypy", "black", "ruff",
     "fastapi", "uvicorn[standard]", "pydantic",
     "httpx", "gunicorn", "prometheus-client",
-    "slowapi", "streamlit", "types-PyYAML"
+    "slowapi", "streamlit", "types-PyYAML",
+    "PyYAML",
 ]

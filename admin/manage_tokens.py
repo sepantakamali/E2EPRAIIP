@@ -5,11 +5,11 @@ import os
 from pathlib import Path
 
 from textclf.token_store import load_registry, validate_scopes
-from textclf.token_rotation import (
+from admin.token_rotation import (
     build_rotation_plan,
     execute_rotation,
 )
-from textclf.token_consumer import (
+from admin.token_consumer import (
     build_restart_callback,
     build_verification_callback,
 )

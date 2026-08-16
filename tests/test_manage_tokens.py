@@ -6,11 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
-import scripts.manage_tokens as manage_tokens
+import admin.manage_tokens as manage_tokens
 
 from typing import cast
 
-from textclf.token_rotation import RotationPlan
+from admin.token_rotation import RotationPlan
 
 
 def write_registry(path: Path) -> Path:

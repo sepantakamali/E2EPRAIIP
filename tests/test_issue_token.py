@@ -7,9 +7,9 @@ import json
 
 
 from textclf.token_store import find_latest_active_token_in_group
-from textclf.token_issuance import iso_z
+from admin.token_issuance import iso_z
 
-from textclf.token_issuance import issue_token
+from admin.token_issuance import issue_token
 
 
 def make_record(

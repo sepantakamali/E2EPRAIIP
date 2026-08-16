@@ -14,7 +14,7 @@ from textclf.token_store import (
     validate_scopes,
 )
 
-from textclf.token_issuance import IssuedToken, issue_token
+from admin.token_issuance import IssuedToken, issue_token
 
 import os
 import tempfile

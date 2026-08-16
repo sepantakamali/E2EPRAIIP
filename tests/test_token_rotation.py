@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from textclf.token_issuance import iso_z
+from admin.token_issuance import iso_z
 
-from textclf.token_rotation import (
+from admin.token_rotation import (
     RotationPlan,
     abort_rotation,
     build_rotation_plan,

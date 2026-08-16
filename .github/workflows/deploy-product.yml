@@ -33,12 +33,32 @@ jobs:
           ssh -i ~/.ssh/textclf_deploy \
             -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/nginx'"
+            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/nginx' '$DEPLOY_PATH/admin' '$DEPLOY_PATH/admin_lib/textclf'"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
             deploy/docker-compose.product.yml \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/deploy/docker-compose.product.yml"
+          
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            deploy/token-principals.yml \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/deploy/token-principals.yml"
+
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            admin/__init__.py \
+            admin/manage_tokens.py \
+            admin/token_consumer.py \
+            admin/token_issuance.py \
+            admin/token_rotation.py \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/admin/"
+
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            src/textclf/__init__.py \
+            src/textclf/token_store.py \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/admin_lib/textclf/"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
@@ -53,6 +73,22 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "Validating token administration tooling..."
+
+            PYTHONPATH="$PWD:$PWD/admin_lib" \
+            python3 -c "
+            from admin import token_consumer
+            from admin import token_issuance
+            from admin import token_rotation
+            from textclf import token_store
+            print('Token administration tooling imports successfully')
+            "
+
+            PYTHONPATH="$PWD:$PWD/admin_lib" \
+            python3 admin/manage_tokens.py --help >/dev/null
+
+            echo "Token administration tooling validated"
 
             COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
             if [ -z "$COMMIT_SHA" ]; then

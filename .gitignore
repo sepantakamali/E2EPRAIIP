@@ -29,3 +29,5 @@ logs/
 # certificates and private keys
 certbot/conf/
 certbot/www/
+
+.DS_Store
