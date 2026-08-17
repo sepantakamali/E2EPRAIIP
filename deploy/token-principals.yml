@@ -30,7 +30,3 @@ principals:
       expected_client_id: ui-service
 
     auto_rotation_supported: true
-
-  client-demo:
-    rotation_group: client-demo
-    auto_rotation_supported: false

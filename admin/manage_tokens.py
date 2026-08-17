@@ -16,6 +16,9 @@ from admin.token_consumer import (
 
 from dataclasses import replace
 
+import subprocess
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Manage textclf service-token lifecycle operations."
@@ -230,6 +233,17 @@ def main() -> None:
         print("Rotation completed successfully.")
         print(f"Old token: {result.old_token_id}")
         print(f"New token: {result.new_token_id}")
+
+        backup_script = Path(
+            "/home/deploy/textclf/admin/backup_secrets.sh"
+        )
+
+        if backup_script.exists():
+            subprocess.run(
+                [str(backup_script)],
+                check=True,
+            )
+            print("Secrets backup completed.")
 
     if args.command == "verify":
         token_file = os.getenv("AUTH_TOKENS_FILE")
