@@ -33,7 +33,7 @@ jobs:
           ssh -i ~/.ssh/textclf_deploy \
             -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/nginx' '$DEPLOY_PATH/admin' '$DEPLOY_PATH/admin_lib/textclf'"
+            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/nginx' '$DEPLOY_PATH/admin' '$DEPLOY_PATH/textclf'"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
@@ -57,12 +57,12 @@ jobs:
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
             src/textclf/token_store.py \
-            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/admin_lib/textclf/"
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/textclf/"
 
           ssh -i ~/.ssh/textclf_deploy \
             -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            ": > '$DEPLOY_PATH/admin_lib/textclf/__init__.py'"
+            ": > '$DEPLOY_PATH/textclf/__init__.py'"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
@@ -82,7 +82,6 @@ jobs:
 
             echo "Validating token administration tooling..."
 
-            PYTHONPATH="$PWD:$PWD/admin_lib" \
             python3 -c "
             from admin import token_consumer
             from admin import token_issuance
@@ -91,8 +90,7 @@ jobs:
             print('Token administration tooling imports successfully')
             "
 
-            PYTHONPATH="$PWD:$PWD/admin_lib" \
-            python3 admin/manage_tokens.py --help >/dev/null
+            python3 -m admin.manage_tokens --help >/dev/null
 
             echo "Token administration tooling validated"
 
