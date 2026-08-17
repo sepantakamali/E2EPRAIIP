@@ -11,6 +11,7 @@ from typing import Any
 def build_restart_callback(
     *,
     consumer_type: str,
+    env_file: str,
     compose_file: str,
     compose_service: str,
     container_name: str,
@@ -26,6 +27,8 @@ def build_restart_callback(
             [
                 "docker",
                 "compose",
+                "--env-file",
+                env_file,
                 "-f",
                 compose_file,
                 "up",
@@ -123,9 +126,14 @@ def build_verification_callback(
         except json.JSONDecodeError:
             return False
 
+        principal = payload.get("principal")
+
+        if not isinstance(principal, dict):
+            return False
+
         return (
-            payload.get("subject") == expected_subject
-            and payload.get("client_id") == expected_client_id
+            principal.get("subject") == expected_subject
+            and principal.get("client_id") == expected_client_id
         )
 
     return verify_consumer

@@ -82,6 +82,7 @@ class RotationPlan:
     consumer_type: str
     consumer_secret_path: Path
     container_secret_path: Path
+    env_file: str
     compose_file: str
     compose_service: str
     container_name: str
@@ -204,6 +205,7 @@ def build_rotation_plan(
     consumer_type = consumer.get("type")
     secret_path = consumer.get("secret_path")
     container_secret_path = consumer.get("container_secret_path")
+    env_file = consumer.get("env_file")
     compose_file = consumer.get("compose_file")
     compose_service = consumer.get("compose_service")
     container_name = consumer.get("container_name")
@@ -228,6 +230,11 @@ def build_rotation_plan(
     ):
         raise ValueError(
             f"{principal}: consumer.container_secret_path must be set"
+        )
+
+    if not isinstance(env_file, str) or not env_file:
+        raise ValueError(
+            f"{principal}: consumer.env_file must be set"
         )
 
     if not isinstance(compose_file, str) or not compose_file:
@@ -328,6 +335,7 @@ def build_rotation_plan(
         consumer_type=consumer_type,
         consumer_secret_path=Path(secret_path),
         container_secret_path=Path(container_secret_path),
+        env_file=env_file,
         compose_file=compose_file,
         compose_service=compose_service,
         container_name=container_name,

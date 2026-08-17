@@ -67,6 +67,7 @@ principals:
       type: docker-compose
       secret_path: /tmp/ui_api_token.txt
       container_secret_path: /run/secrets/ui_api_token
+      env_file: /tmp/.env
       compose_file: /tmp/docker-compose.product.yml
       compose_service: ui
       container_name: textclf-ui

@@ -202,6 +202,7 @@ def main() -> None:
 
         restart_consumer = build_restart_callback(
             consumer_type=plan.consumer_type,
+            env_file=plan.env_file,
             compose_file=plan.compose_file,
             compose_service=plan.compose_service,
             container_name=plan.container_name,

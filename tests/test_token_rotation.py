@@ -38,10 +38,12 @@ principals:
       - whoami:read
     ttl_days: 90
     overlap_minutes: 15
+
     consumer:
         type: docker-compose
         secret_path: /tmp/ui_api_token.txt
         container_secret_path: /run/secrets/ui_api_token
+        env_file: /tmp/.env
         compose_file: /tmp/docker-compose.product.yml
         compose_service: ui
         container_name: textclf-ui
@@ -347,6 +349,7 @@ def test_prepare_rotation_uses_plan_overrides(
         expected_client_id=plan.expected_client_id,
         consumer_type=plan.consumer_type,
         container_secret_path=plan.container_secret_path,
+        env_file=plan.env_file,
         compose_file=plan.compose_file,
         container_name=plan.container_name,
         health_timeout_seconds=plan.health_timeout_seconds,
@@ -556,6 +559,7 @@ def test_execute_rotation_successfully_commits(
         expected_client_id=plan.expected_client_id,
         consumer_type=plan.consumer_type,
         container_secret_path=plan.container_secret_path,
+        env_file=plan.env_file,
         compose_file=plan.compose_file,
         container_name=plan.container_name,
         health_timeout_seconds=plan.health_timeout_seconds,
@@ -651,6 +655,7 @@ def test_execute_rotation_rolls_back_on_verification_failure(
         expected_client_id=plan.expected_client_id,
         consumer_type=plan.consumer_type,
         container_secret_path=plan.container_secret_path,
+        env_file=plan.env_file,
         compose_file=plan.compose_file,
         container_name=plan.container_name,
         health_timeout_seconds=plan.health_timeout_seconds,
