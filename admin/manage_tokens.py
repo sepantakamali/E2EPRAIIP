@@ -76,6 +76,17 @@ def main() -> None:
         type=int,
     )
 
+    verify_parser = subparsers.add_parser(
+        "verify",
+        help="Verify the currently deployed service token.",
+    )
+
+    verify_parser.add_argument("principal")
+    verify_parser.add_argument(
+        "--policy",
+        default="deploy/token-principals.yml",
+    )
+
     args = parser.parse_args()
 
     if args.command == "list":
@@ -218,6 +229,38 @@ def main() -> None:
         print("Rotation completed successfully.")
         print(f"Old token: {result.old_token_id}")
         print(f"New token: {result.new_token_id}")
+
+    if args.command == "verify":
+        token_file = os.getenv("AUTH_TOKENS_FILE")
+
+        if not token_file:
+            raise RuntimeError("AUTH_TOKENS_FILE must be set")
+
+        plan = build_rotation_plan(
+            principal=args.principal,
+            policy_path=Path(args.policy),
+            registry_path=Path(token_file),
+        )
+
+        verify_consumer = build_verification_callback(
+            verification_type=plan.verification_type,
+            container_name=plan.container_name,
+            container_secret_path=str(
+                plan.container_secret_path
+            ),
+            endpoint=plan.verification_endpoint,
+            expected_subject=plan.expected_subject,
+            expected_client_id=plan.expected_client_id,
+        )
+
+        if not verify_consumer():
+            raise RuntimeError(
+                f"Consumer verification failed: {plan.principal}"
+            )
+
+        print(
+            f"Consumer verification passed: {plan.principal}"
+        )
 
 
 if __name__ == "__main__":

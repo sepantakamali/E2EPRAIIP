@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from textclf.token_audit import VALID_SCOPES
-from textclf.token_issuance import issue_token as issue_token_record
+from admin.token_issuance import issue_token as issue_token_record
 
 
 def main() -> None:
