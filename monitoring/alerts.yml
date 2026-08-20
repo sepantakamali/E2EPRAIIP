@@ -14,7 +14,7 @@ groups:
         expr: >-
           histogram_quantile(
             0.95,
-            sum(rate(pred_latency_seconds_bucket{job="textclf-api"}[5m])) by (le)
+            sum(rate(prediction_latency_seconds_bucket{job="textclf-api"}[5m])) by (le)
           ) > 0.75
         for: 10m
         labels:
@@ -26,9 +26,9 @@ groups:
       - alert: TextclfPredictionErrorRateHigh
         expr: >-
           (
-            sum(rate(pred_request_errors_total{job="textclf-api"}[5m]))
+            sum(rate(prediction_request_errors_total{job="textclf-api"}[5m]))
             /
-            clamp_min(sum(rate(pred_requests_total{job="textclf-api"}[5m])), 0.001)
+            clamp_min(sum(rate(prediction_requests_total{job="textclf-api"}[5m])), 0.001)
           ) > 0.05
         for: 10m
         labels:
@@ -38,7 +38,7 @@ groups:
           description: "Prediction error rate has been above 5% for 10 minutes. Check API logs with X-Request-ID correlation and recent model/artifact changes."
 
       - alert: TextclfNoPredictionTraffic
-        expr: sum(rate(pred_requests_total{job="textclf-api"}[15m])) == 0
+        expr: sum(rate(prediction_requests_total{job="textclf-api"}[15m])) == 0
         for: 30m
         labels:
           severity: info

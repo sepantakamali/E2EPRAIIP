@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from textclf_api_client import AuthenticatedClient
 from textclf_api_client.api.default import (
     health_health_get,
@@ -11,15 +12,31 @@ from textclf_api_client.api.default import (
 from textclf_api_client.models.predict_request import PredictRequest
 
 
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = os.getenv(
+    "CLIENT_DEMO_API_BASE_URL",
+    "http://127.0.0.1:8000",
+).rstrip("/")
+
 client_demo_token_file = os.getenv("CLIENT_DEMO_TOKEN_FILE")
 if not client_demo_token_file:
     raise EnvironmentError(
         "CLIENT_DEMO_TOKEN_FILE is not set. Load .env first with: "
         "set -a && source .env && set +a"
     )
+
 CLIENT_DEMO_TOKEN_FILE = Path(client_demo_token_file)
-MODEL_SELECTOR = os.getenv("CLIENT_DEMO_MODEL", "stable")
+
+MODEL_SELECTOR = os.getenv(
+    "CLIENT_DEMO_MODEL",
+    "stable",
+)
+
+REQUEST_TIMEOUT_SECONDS = float(
+    os.getenv(
+        "CLIENT_DEMO_TIMEOUT_SECONDS",
+        "10",
+    )
+)
 
 
 def read_token(path: Path) -> str:
@@ -39,13 +56,14 @@ def main() -> None:
     client = AuthenticatedClient(
         base_url=API_BASE_URL,
         token=token,
-        timeout=10.0,
+        timeout=REQUEST_TIMEOUT_SECONDS,
         raise_on_unexpected_status=False,
     )
 
     print("=== CLIENT CONFIG ===")
     print("Base URL:", API_BASE_URL)
     print("Model selector:", MODEL_SELECTOR)
+    print("Request timeout:", REQUEST_TIMEOUT_SECONDS)
     print("Token file:", CLIENT_DEMO_TOKEN_FILE)
     print()
 

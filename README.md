@@ -13,7 +13,9 @@ The current reference application is a text classification model served through 
 - A trained text classification model served through a typed FastAPI API
 - Versioned model artifacts with metadata, `latest`, and `stable` pointer resolution
 - A Streamlit UI for local/product-style interaction with the inference service
-- Bearer-token authentication with scoped tokens
+- Bearer-token authentication with scoped service principals
+- Controlled token lifecycle management with planning, verification, rotation, overlap, rollback, and audit metrics
+- Encrypted off-VM secret backup and tested restore using restic and OCI Object Storage
 - Prometheus metrics, Prometheus alert rules, and Grafana Cloud dashboards
 - Docker Compose stacks for product and monitoring environments under `deploy/`
 - A generated OpenAPI Python SDK for downstream integration
@@ -69,20 +71,27 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    TokenScript[Token Issuer Script] --> TokenFile[Client Token File]
-    TokenFile --> SDKClient[Authenticated SDK Client]
-    SDKClient --> Auth[Bearer Auth Layer]
+    Admin[Host-side Token Admin CLI] --> Registry[Token Registry]
+    Admin --> Secret[UI Consumer Secret]
+
+    Secret --> UI[Production UI Service]
+    UI --> Auth[Bearer Auth Layer]
+    Registry --> Auth
+
+    DemoToken[Local client-demo Token] --> Demo[client_demo.py]
+    SDK[Generated Python SDK] --> Demo
+    Demo --> Auth
+
     Auth --> API[FastAPI API]
 
     API --> Predict[Predict Endpoint]
     API --> Version[Version Endpoint]
     API --> Models[Models Endpoint]
     API --> Whoami[Whoami Endpoint]
-    API --> Health[Health Endpoint]
 
     API --> OpenAPI[OpenAPI Schema]
     OpenAPI --> Generator[OpenAPI Python Client Generator]
-    Generator --> SDKPackage[Generated Python SDK]
+    Generator --> SDK
 ```
 
 ### 4. Docker and Monitoring Layout
@@ -136,6 +145,14 @@ Main API features:
 - Request IDs
 - Runtime model metadata reporting
 - Prometheus metric instrumentation
+- token expiry and revocation enforcement
+- constant-time token hash comparison
+- per-principal rate-limit identity
+- trusted-proxy handling
+- internal-only diagnostics and metrics endpoints
+- authentication and authorization audit logging
+- token-registry Prometheus metrics
+- production API docs/OpenAPI disabled unless explicitly enabled
 
 ### Model Versioning and Promotion
 
@@ -164,11 +181,13 @@ The Streamlit interface supports:
 
 ### Generated Python SDK
 
-The SDK is generated from the FastAPI OpenAPI schema and lives under:
+The SDK is generated from the FastAPI OpenAPI schema.
 
-```text
+Generated SDK project directory:
 textclf_client/
-```
+
+Importable generated Python package:
+textclf_api_client
 
 It provides:
 
@@ -190,31 +209,51 @@ Monitoring support includes:
 - latency percentiles
 - process metrics
 - runtime metrics
-- structured application logs
+- token-registry validation metrics
+- active-token expiry and warning metrics
+- per-token days-remaining metrics
+- Prometheus alerts for invalid registries and expiring/expired active tokens
 
 ### Deployment
 
-### Deployment Files
+#### Deployment Files
 
-- Dockerfile
-- docker-compose.product.yml
-- docker-compose.monitor.yml
-- docker-compose.yml
-- grafana/dashboards/e2epraiip-overview.json
-- scripts/sync_grafana_dashboard.sh
+```text
+admin/
+├── manage_tokens.py
+├── token_consumer.py
+├── token_issuance.py
+├── token_rotation.py
+├── backup_secrets.sh
+└── restore_secrets.sh
 
 deploy/
-    docker-compose.product.yml
-    docker-compose.monitor.yml
+├── docker-compose.product.yml
+├── docker-compose.monitor.yml
+└── token-principals.yml
 
 monitoring/
-    prometheus.yml
-    alerts.yml
+├── prometheus.yml
+└── alerts.yml
+
+nginx/
+├── metrics.conf
+└── ui.conf
 
 grafana/
-    dashboards/
+└── dashboards/
+    └── e2epraiip-overview.json
 
-### Deployment Capabilities
+scripts/
+├── audit_tokens.py
+├── generate_prometheus_config.sh
+├── issue_token.py
+├── provision_monitoring_auth.py
+├── revoke_token.py
+└── sync_grafana_dashboard.sh
+```
+
+#### Deployment Capabilities
 
 - Oracle Cloud Infrastructure (OCI) Ubuntu Server deployment
 - Docker Compose orchestration
@@ -225,6 +264,9 @@ grafana/
 - Nginx reverse proxy with HTTPS
 - Cloudflare DNS integration
 - Automatic TLS certificate provisioning with Let's Encrypt
+- host-side token administration tooling deployed separately from the application image
+- encrypted secret backup to OCI Object Storage with restic
+- daily secret backup scheduling with systemd and retention management
 
 ---
 
@@ -234,10 +276,18 @@ grafana/
 .
 ├── .github/
 │   └── workflows/              # CI, Docker, product, monitoring, and Grafana workflows
+├── admin/                      # Host-side token lifecycle and secret backup tooling
+│   ├── manage_tokens.py
+│   ├── token_consumer.py
+│   ├── token_issuance.py
+│   ├── token_rotation.py
+│   ├── backup_secrets.sh
+│   └── restore_secrets.sh
 ├── artifacts/                  # Model artifacts, pointers, and run logs
-├── deploy/                     # VM deployment Compose files
+├── deploy/                     # VM deployment Compose files and token principal policy
 │   ├── docker-compose.product.yml
-│   └── docker-compose.monitor.yml
+│   ├── docker-compose.monitor.yml
+│   └── token-principals.yml
 ├── grafana/                    # Grafana Cloud dashboard-as-code
 │   └── dashboards/
 │       └── e2epraiip-overview.json
@@ -245,11 +295,15 @@ grafana/
 │   ├── prometheus.yml
 │   └── alerts.yml
 ├── nginx/                      # Metrics proxy configuration
-│   └── metrics.conf
+│   ├── metrics.conf
 │   └── ui.conf
 ├── logs/                       # Local application log files
-├── scripts/                    # Token, setup, dashboard sync, and utility scripts
+├── scripts/                    # Manual token, monitoring-auth, and utility scripts
+│   ├── audit_tokens.py
+│   ├── generate_prometheus_config.sh
 │   ├── issue_token.py
+│   ├── provision_monitoring_auth.py
+│   ├── revoke_token.py
 │   └── sync_grafana_dashboard.sh
 ├── src/
 │   └── textclf/
@@ -259,9 +313,11 @@ grafana/
 │       ├── data.py
 │       ├── logging_conf.py
 │       ├── model.py
-│       └── persistence.py
+│       ├── persistence.py
+│       ├── token_audit.py
+│       └── token_store.py
 ├── tests/
-├── textclf_client/             # Generated Python SDK package
+├── textclf_client/             # Generated SDK project/output directory
 ├── ui/                         # Streamlit frontend
 ├── Dockerfile
 ├── docker-compose.product.yml  # Local/product-style compose file
@@ -280,37 +336,78 @@ grafana/
 
 ## Authentication
 
-Protected routes use Bearer token authentication.
+Protected API routes use scoped Bearer token authentication.
 
-Tokens are issued with:
+### Production Service Authentication
 
-```bash
-python scripts/issue_token.py \
-  --subject client-demo \
-  --client-id client-demo \
-  --scopes predict:run version:read whoami:read health:read \
-  --rotation-group client-demo
-```
+The production Streamlit UI authenticates to FastAPI as the `ui-service` service principal.
+
+Production token metadata is stored outside Git under:
 
 ```text
-Available scopes can be listed with:
+/home/deploy/textclf_secrets/tokens.json
 ```
 
-```bash
-python scripts/issue_token.py --list-scopes
-```
+The UI raw credential is stored separately at:
 
 ```text
-Tokens support scoped permissions and rotation.
+/home/deploy/textclf_secrets/ui_api_token.txt
 ```
 
-The raw token should be stored outside the repository. For the demo client, the token path is configured through:
+The current UI scopes are:
+
+```text
+predict:run
+models:read
+version:read
+whoami:read
+```
+
+Token lifecycle administration is performed on the VM with:
+
+```bash
+cd /home/deploy/textclf
+set -a; source .env; set +a
+
+python3 -m admin.manage_tokens list
+python3 -m admin.manage_tokens plan ui-service
+python3 -m admin.manage_tokens verify ui-service
+python3 -m admin.manage_tokens rotate ui-service
+```
+
+- `list` displays token registry state without exposing raw credentials.
+- `plan` validates policy and displays a non-mutating rotation plan.
+- `verify` verifies the credential actually mounted inside the running consumer.
+- `rotate` requires administrator approval and performs controlled successor issuance, overlap, atomic secret replacement, consumer restart, health checking, credential verification, rollback on failure, finalization, and immediate encrypted backup after success.
+
+Production principal policy is stored in:
+
+```text
+deploy/token-principals.yml
+```
+
+Raw production credentials are never stored in Git or application images.
+
+### SDK Demo Authentication
+
+client_demo.py is a local integration example for the generated Python SDK.
+
+It uses the separate `client-demo` principal.
+
+The API base URL is configured through `CLIENT_DEMO_API_BASE_URL` and defaults to:
+
+http://127.0.0.1:8000
+
+The raw demo token remains outside the repository and is referenced through:
 
 ```env
 CLIENT_DEMO_TOKEN_FILE=../practice_sprint_secrets/client_demo_token.txt
+CLIENT_DEMO_API_BASE_URL=http://127.0.0.1:8000
+CLIENT_DEMO_MODEL=stable
+CLIENT_DEMO_TIMEOUT_SECONDS=10
 ```
 
-Before running local scripts that depend on `.env`, load environment variables:
+Load .env before running the demo:
 
 ```bash
 set -a
@@ -318,7 +415,8 @@ source .env
 set +a
 ```
 
----
+The client-demo credential is a development/integration credential and is
+separate from the production ui-service credential.
 
 ## Generated Python SDK
 
@@ -330,6 +428,8 @@ openapi-python-client generate \
   --overwrite \
   --output-path textclf_client
 ```
+
+The generated project is stored under `textclf_client/`, while the importable package used by `client_demo.py` is `textclf_api_client`.
 
 Run the demo client:
 
@@ -386,7 +486,7 @@ pytest
 Run type checking:
 
 ```bash
-mypy src
+mypy src admin
 ```
 
 ---
@@ -417,7 +517,7 @@ Stop the monitoring stack:
 docker compose --env-file .env -f deploy/docker-compose.monitor.yml down
 ```
 
-The public entry point is an Nginx reverse proxy serving https://hastikamali.com over ports 80 and 443. Streamlit, FastAPI, Prometheus, and the metrics proxy communicate only over internal Docker networks.
+The public entry point is an Nginx reverse proxy serving https://<DOMAIN> over ports 80 and 443. Streamlit, FastAPI, Prometheus, and the metrics proxy communicate only over internal Docker networks.
 
 In this deployment:
 
@@ -446,7 +546,7 @@ Typical deployed endpoints:
 
 ```text
 Public UI:
-https://hastikamali.com
+https://<DOMAIN>
 
 Prometheus:
 localhost only
@@ -485,6 +585,13 @@ histogram_quantile(
 )
 ```
 
+Token lifecycle metrics include:
+
+textclf_token_registry_valid
+textclf_token_active_expired_total
+textclf_token_active_warning_total
+textclf_token_days_remaining
+
 ### Dashboard
 
 The Grafana Cloud dashboard includes:
@@ -507,7 +614,11 @@ The Grafana Cloud dashboard includes:
 Example authenticated request:
 
 ```bash
-TOKEN="$(cat ../practice_sprint_secrets/client_demo_token.txt)"
+set -a
+source .env
+set +a
+
+TOKEN="$(cat "$CLIENT_DEMO_TOKEN_FILE")"
 
 curl -X POST "http://127.0.0.1:8000/predict?model=stable" \
   -H "Authorization: Bearer ${TOKEN}" \
@@ -529,12 +640,21 @@ Current tests cover:
 - model training and prediction
 - artifact save/load/versioning behavior
 - promotion behavior
+- token-registry auditing
+- token audit Prometheus metric collection
+- token issuance and replacement semantics
+- token rotation planning and policy validation
+- overlap handling and finalization
+- rollback behavior
+- atomic consumer-secret installation
+- administrator approval and cancellation
+- administrator scope, TTL, and overlap overrides
 
 Run all quality checks:
 
 ```bash
 pytest
-mypy src
+mypy src admin
 ```
 
 ---
@@ -545,7 +665,7 @@ GitHub Actions currently provide:
 
 - CI workflow:
   - dependency installation
-  - `mypy src`
+  - `mypy src admin`
   - `pytest -q`
 - Docker workflow:
   - Multi-architecture Docker build (`linux/amd64`, `linux/arm64`)
@@ -568,12 +688,19 @@ Implemented:
 - Oracle Cloud Infrastructure deployment
 - Docker Compose deployment
 - SSH-based server administration
+- scoped service-token monitoring and alerting
+- administrator-approved token rotation with rollback
+- host-side token administration tooling deployed separately from application images
+- consumer credential verification after rotation
+- encrypted OCI Object Storage secret backups using restic
+- tested secret restore procedure
+- daily systemd secret backup scheduling
+- automatic post-rotation backup
 
 Remaining:
 
 - Infrastructure as Code (Terraform)
-- Production validation
-- Security hardening review
+- final production validation and release/documentation review
 
 
 ## Deployment
@@ -621,15 +748,18 @@ Example deployment layout:
 ```text
 /home/deploy/textclf
 ├── .env
+├── admin/
 ├── artifacts/
 ├── deploy/
 │   ├── docker-compose.product.yml
-│   └── docker-compose.monitor.yml
+│   ├── docker-compose.monitor.yml
+│   └── token-principals.yml
 ├── monitoring/
 │   ├── prometheus.yml
 │   └── alerts.yml
 ├── nginx/
-│   └── metrics.conf
+│   ├── metrics.conf
+│   └── ui.conf
 └── logs/
 
 /home/deploy/textclf_secrets
@@ -637,7 +767,16 @@ Example deployment layout:
 ├── ui_api_token.txt
 ├── metrics.htpasswd
 ├── prometheus_metrics_password.txt
-└── gc_prom_password.txt
+├── gc_prom_username.txt
+├── gc_prom_password.txt
+├── gc_prom_url.txt
+└── grafana_admin_password.txt
+
+/home/deploy/.config/textclf-backup
+├── restic.env
+├── restic-password
+├── aws-access-key
+└── aws-secret-key
 ```
 
 The deployment stack uses:
@@ -667,6 +806,41 @@ Benefits:
 - model updates do not require image rebuilds
 - stable/latest promotion remains independent from application releases
 - multiple model versions can coexist on the deployment host
+
+### Secret Backup and Recovery
+
+Production secrets under `/home/deploy/textclf_secrets/` are mutable runtime state and are deliberately independent from Git, Docker images, and deployment synchronization.
+
+Encrypted backups are created with restic and stored in OCI Object Storage with object versioning enabled.
+
+Backup configuration and credentials are stored separately under:
+
+/home/deploy/.config/textclf-backup/
+
+On-demand backup:
+
+cd /home/deploy/textclf
+./admin/backup_secrets.sh
+
+Retention policy:
+- 7 daily recovery points
+- 4 weekly recovery points
+- 6 monthly recovery points
+
+A systemd timer performs daily backups. Successful service-token rotation also triggers an immediate backup.
+
+Timer status:
+systemctl list-timers textclf-secrets-backup.timer
+
+Backup service status:
+systemctl status textclf-secrets-backup.service
+
+Restore operations are staged first:
+
+cd /home/deploy/textclf
+./admin/restore_secrets.sh
+
+Restored data is verified before an administrator deliberately replaces production secret state. The restore path has been tested successfully against the encrypted OCI repository.
 
 ### Local VM Deployment
 
@@ -706,27 +880,27 @@ The cloud deployment includes:
 - Grafana Cloud used for dashboards
 - Nginx reverse proxy serving the application over HTTPS
 
-The deployed application is publicly available through https://hastikamali.com. Nginx terminates TLS and forwards requests to the internal Streamlit service. FastAPI remains internal to the Docker network and is accessed only by trusted services.
+The deployed application is publicly available through https://<DOMAIN>. Nginx terminates TLS and forwards requests to the internal Streamlit service. FastAPI remains internal to the Docker network and is accessed only by trusted services.
 
 ### Deployment Validation
 
 Verify the public Streamlit UI is reachable:
 
 ```bash
-curl -I https://hastikamali.com
+curl -I https://<DOMAIN>
 ```
 
 Expected result: HTTP/2 200
 
 ```bash
-curl -I http://hastikamali.com
+curl -I http://<DOMAIN>.com
 ```
 
 Expected result: 
 
 ```json
 301 Moved Permanently
-Location: https://hastikamali.com/
+Location: https://<DOMAIN>/
 ```
 
 Verify the FastAPI service from inside the API container:
@@ -763,7 +937,24 @@ Expected output:
 "health":"up"
 ```
 
-The public application is served through Nginx over HTTPS at https://hastikamali.com.
+```bash
+cd /home/deploy/textclf
+set -a
+source .env
+set +a
+
+python3 -m admin.manage_tokens verify ui-service
+```
+
+Expected: Consumer verification passed: ui-service
+
+```bash
+python3 -m admin.manage_tokens list
+systemctl status textclf-secrets-backup.timer
+```
+
+
+The public application is served through Nginx over HTTPS at https://<DOMAIN>.
 
 FastAPI, Streamlit, Prometheus, and the metrics proxy communicate over internal Docker networks. Only Nginx is exposed publicly.
 
@@ -788,6 +979,14 @@ Validated components:
 - Public HTTPS access through Nginx
 - Prometheus bound to localhost
 - Docker group configuration for non-root container management
+- scoped Bearer authentication
+- token-registry auditing
+- token rotation with controlled overlap and rollback
+- consumer-secret replacement and verification
+- protected host secret permissions
+- encrypted OCI secret backup
+- successful staged restore from backup
+- systemd backup scheduling
 
 Validated deployment flow:
 
@@ -819,12 +1018,20 @@ Implemented:
 - health, readiness, and internal diagnostics endpoints
 - Prometheus scraping and alert rules
 - Grafana Cloud dashboards through remote_write
+- scoped service-token authentication and authorization
+- token audit metrics and expiry/validation alerts
+- administrator-approved token rotation with overlap and rollback
+- consumer verification using the mounted service credential
+- protected production secret permissions
+- encrypted OCI Object Storage backups using restic
+- tested secret restore
+- daily systemd secret backup
+- immediate post-rotation secret backup
 
 Remaining:
 
 - Infrastructure as Code (Terraform)
-- Production security review
-- Operational documentation
+- final production validation and release/documentation review
 
 ### Production Deployment
 
@@ -862,28 +1069,30 @@ Host-mounted Artifacts
 
 ```text
 Internet
-      │
-      ▼
- Cloudflare DNS
-      │
-      ▼
-hastikamali.com
-      │
-      ▼
+   │
+   ▼
+Cloudflare DNS
+   │
+   ▼
+<DOMAIN>.com
+   │
+   ▼
 Nginx
-      │
- ┌────┴────────────┐
- ▼                 ▼
-Streamlit      FastAPI
-                    │
-                    ▼
-             Metrics Proxy
-                    │
-                    ▼
-              Prometheus
-                    │
-                    ▼
-             Grafana Cloud
+   │
+   ▼
+Streamlit
+   │
+   ▼
+FastAPI
+   │
+   ▼
+Metrics Proxy
+   │
+   ▼
+Prometheus
+   │
+   ▼
+Grafana Cloud
 ```
 
 ## Dependency Management
@@ -935,11 +1144,18 @@ Implemented:
 - Oracle Cloud Infrastructure deployment on Ubuntu Server
 - health, readiness, and internal diagnostics endpoints
 - host-mounted model artifact storage
+- scoped service-token lifecycle management and authorization
+- token registry auditing and Prometheus expiry/validation metrics
+- Prometheus alerts for invalid, expiring, and expired token state
+- administrator-approved token rotation with controlled overlap
+- consumer restart, health wait, mounted-token verification, and rollback
+- production secret permissions aligned with service access requirements
+- encrypted off-VM secret backups to OCI Object Storage
+- successfully tested secret restore
+- daily systemd backup scheduling with retention management
+- immediate backup after successful token rotation
 
 Remaining work:
 
-- Certificate renewal automation verification
 - Infrastructure as Code (Terraform)
-- Production security hardening
-- Operational documentation
-- Production validation checklist
+- final production validation and release/documentation cleanup

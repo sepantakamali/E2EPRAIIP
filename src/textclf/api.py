@@ -58,13 +58,13 @@ from textclf.token_audit import (
 )
 
 PREDICTIONS = Counter("prediction_requests_total", "Total prediction requests")
-PRED_LATENCY = Histogram(
+PREDICTION_LATENCY = Histogram(
     "prediction_latency_seconds",
     "Prediction latency (seconds)",
     # Checking more important percentiles
     buckets=(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0)
 )
-PRED_ERRORS = Counter("prediction_request_errors_total", "Total prediction errors")
+PREDICTION_ERRORS = Counter("prediction_request_errors_total", "Total prediction errors")
 
 # Optional: Redis-backed limits for distributed deployments
 SLOWAPI_STORAGE_URI = os.getenv("SLOWAPI_STORAGE_URI")  # e.g., "redis://redis:6379/0"
@@ -801,7 +801,7 @@ def predict(
         try:
             desired_path, _ = _resolve_path(model, model_path)
         except FileNotFoundError as e:
-            PRED_ERRORS.inc()
+            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=404, detail=str(e))
 
         state = STATE["state"]
@@ -809,19 +809,19 @@ def predict(
             try:
                 _load_into_state(model, model_path)
             except FileNotFoundError as e:
-                PRED_ERRORS.inc()
+                PREDICTION_ERRORS.inc()
                 raise HTTPException(status_code=404, detail=str(e))
 
         # Validate inputs
         if not payload.texts:
-            PRED_ERRORS.inc()
+            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=422, detail="No texts provided.")
         if len(payload.texts) > MAX_TEXTS:
-            PRED_ERRORS.inc()
+            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Too many texts; max is {MAX_TEXTS}.")
         too_long = [text for text in payload.texts if len(text) > MAX_TEXT_LEN]
         if too_long:
-            PRED_ERRORS.inc()
+            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Some texts exceed {MAX_TEXT_LEN} characters.")
 
         # Predict
@@ -873,7 +873,7 @@ def predict(
         return PredictResponse(labels=labels, probabilities=_probabilities, model=model_dict)    
     except Exception:
         # catch unexpected exceptions too
-        PRED_ERRORS.inc()
+        PREDICTION_ERRORS.inc()
         log.exception(
             "Prediction failed request_id=%s client_id=%s",
             getattr(request.state, "request_id", None),
@@ -881,4 +881,4 @@ def predict(
         )
         raise
     finally:
-        PRED_LATENCY.observe(time.perf_counter() - start)
+        PREDICTION_LATENCY.observe(time.perf_counter() - start)
