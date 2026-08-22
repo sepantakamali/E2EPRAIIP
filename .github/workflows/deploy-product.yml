@@ -102,6 +102,12 @@ jobs:
             export IMAGE_TAG="sha-${COMMIT_SHA:0:7}"
             IMAGE="ghcr.io/sepantakamali/e2epraiip:${IMAGE_TAG}"
 
+            if grep -q '^IMAGE_TAG=' .env; then
+              sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${IMAGE_TAG}/" .env
+            else
+              printf '\nIMAGE_TAG=%s\n' "${IMAGE_TAG}" >> .env
+            fi
+
             echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             echo "Deploying image: ${IMAGE}"
