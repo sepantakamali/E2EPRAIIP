@@ -80,6 +80,16 @@ jobs:
             
             cd ${{ secrets.DEPLOY_PATH }}
 
+            PREVIOUS_IMAGE="$(docker inspect textclf-api \
+              --format '{{.Config.Image}}' 2>/dev/null || true)"
+
+            PREVIOUS_TAG=""
+            if [[ "$PREVIOUS_IMAGE" == ghcr.io/sepantakamali/e2epraiip:sha-* ]]; then
+              PREVIOUS_TAG="${PREVIOUS_IMAGE##*:}"
+            fi
+
+            echo "Previous deployed image: ${PREVIOUS_IMAGE:-none}"
+
             echo "Validating token administration tooling..."
 
             python3 -c "
@@ -117,22 +127,77 @@ jobs:
             docker compose --env-file .env -f deploy/docker-compose.product.yml up -d
             docker compose --env-file .env -f deploy/docker-compose.product.yml ps
 
-            echo "Waiting for API health check..."
+            echo "Waiting for product services to become healthy..."
             sleep 3
 
-            for i in {1..30}; do
-              if docker exec textclf-api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"; then
+            for i in {1..45}; do
+              API_HEALTH="$(docker inspect \
+                --format '{{.State.Health.Status}}' \
+                textclf-api 2>/dev/null || echo missing)"
+
+              UI_HEALTH="$(docker inspect \
+                --format '{{.State.Health.Status}}' \
+                textclf-ui 2>/dev/null || echo missing)"
+
+              echo "Health check $i/45: API=${API_HEALTH}, UI=${UI_HEALTH}"
+
+              if [ "$API_HEALTH" = "healthy" ] && \
+                [ "$UI_HEALTH" = "healthy" ]; then
                 echo "Deployment successful"
-                docker compose --env-file .env -f deploy/docker-compose.product.yml images
-                docker inspect textclf-api --format 'ContainerImage={{.Image}}'
-                docker image inspect "${IMAGE}" --format 'ImageId={{.Id}}'
+
+                docker compose \
+                  --env-file .env \
+                  -f deploy/docker-compose.product.yml \
+                  images
+
+                docker inspect textclf-api \
+                  --format 'ContainerImage={{.Image}}'
+
+                docker image inspect "${IMAGE}" \
+                  --format 'ImageId={{.Id}}'
+
+                echo "Cleaning obsolete textclf images..."
+                echo "Keeping current: ${IMAGE_TAG}"
+
+                if [ -n "$PREVIOUS_TAG" ] && [ "$PREVIOUS_TAG" != "$IMAGE_TAG" ]; then
+                  echo "Keeping rollback: ${PREVIOUS_TAG}"
+                else
+                  echo "No separate rollback image to retain"
+                fi
+
+                while IFS= read -r candidate; do
+                  candidate_tag="${candidate##*:}"
+
+                  if [ "$candidate_tag" = "$IMAGE_TAG" ]; then
+                    continue
+                  fi
+
+                  if [ -n "$PREVIOUS_TAG" ] && [ "$candidate_tag" = "$PREVIOUS_TAG" ]; then
+                    continue
+                  fi
+
+                  echo "Removing obsolete image: $candidate"
+                  docker image rm "$candidate" || true
+                done < <(
+                  docker image ls \
+                    --format '{{.Repository}}:{{.Tag}}' |
+                  grep '^ghcr\.io/sepantakamali/e2epraiip:sha-' || true
+                )
+
+                docker image prune -f
+
+                echo "Retained textclf images:"
+                docker image ls \
+                  ghcr.io/sepantakamali/e2epraiip \
+                  --format 'table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}'
+
                 exit 0
               fi
 
-              echo "Health check failed; retrying in 2 seconds... ($i/30)"
+              echo "Health check failed; retrying in 2 seconds... ($i/45)"
               sleep 2
             done
 
-            echo "Deployment failed: API did not become healthy"
+            echo "Deployment failed: product services did not become healthy"
             docker compose --env-file .env -f deploy/docker-compose.product.yml logs --tail=100
             exit 1
