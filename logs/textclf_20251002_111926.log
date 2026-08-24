@@ -1,2 +1,0 @@
-2025-10-02 12:19:26,358 | INFO | textclf | Loaded model version=0.1.0 created_at=2025-10-02T11:18:21Z
-2025-10-02 12:19:26,359 | INFO | textclf | "Hello, i'm testing" => class 0

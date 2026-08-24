@@ -1,2 +1,0 @@
-2025-10-02 12:40:23,928 | INFO | textclf | Loaded model from artifacts/model_latest.joblib | version=0.1.0 created_at=2025-10-01T16:03:30Z
-2025-10-02 12:40:23,928 | INFO | textclf | 'Hockey fans were ecstatic after the playoff win.' => class 0

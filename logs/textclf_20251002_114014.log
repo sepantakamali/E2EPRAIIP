@@ -1,2 +1,0 @@
-2025-10-02 12:40:14,670 | INFO | textclf | Promoted artifacts/model_20251001_160330-lr200.joblib -> artifacts/model_latest.joblib
-2025-10-02 12:40:14,670 | INFO | textclf | Stable model updated at: artifacts/model_latest.joblib
