@@ -48,22 +48,25 @@ flowchart LR
 ```mermaid
 flowchart TD
     Train[Training Pipeline] --> Build[Build Text Classifier]
-    Build --> Save[Save Joblib Artifact]
-    Save --> Meta[Write Artifact Metadata]
+    Build --> Save[Write Immutable Joblib Artifact Once]
+    Save --> Meta[Embedded Build Metadata]
+    Save --> Hash[Hash Final Artifact Bytes]
+    Hash --> Runs[Append Registry Record]
     Save --> Pointers[Update Pointers File]
-    Save --> Runs[Append Run Log]
 
     Pointers --> Latest[Latest Pointer]
     Pointers --> Stable[Stable Pointer]
 
     Save --> Promote[Promote Artifact]
     Promote --> Stable
-    Promote --> Published[Mark Published]
-    Promote --> Release[Optional Release Tag]
+    Save --> Publish[Publish or Unpublish]
+    Publish --> Runs
+    Publish --> Release[Optional Release Tag]
 
     Latest --> Resolve[Model Resolution]
     Stable --> Resolve
     Meta --> Resolve
+    Runs --> Resolve
     Resolve --> API[FastAPI Runtime State]
 ```
 
@@ -159,11 +162,83 @@ Main API features:
 The model lifecycle supports:
 
 - versioned `.joblib` artifacts under `artifacts/`
-- artifact metadata including model ID, software version, creation time, hash, publication status, and release tag
+- immutable artifact metadata including model ID, software version, creation time, and training configuration
+- SHA-256 integrity records calculated from the final serialized artifact bytes
+- mutable publication status and release tags stored outside the artifact
 - `pointers.json` for `latest` and `stable` model resolution
-- run logging through `runs.model`
-- model promotion from candidate artifact to stable artifact
+- append-only lifecycle logging through `runs.model`
+- model promotion by pointer update without copying or rewriting the artifact
 - model selection by pointer, model ID, or artifact filename
+
+#### Artifact and Registry Responsibilities
+
+Each canonical `.joblib` is written once. Its `model_id` is generated independently
+of its serialized bytes, avoiding the circular problem of embedding a file's own
+checksum inside that file. After serialization, the final bytes are hashed and the
+digest is recorded externally.
+
+```text
+artifacts/model_<timestamp>-<tag>.joblib
+├── trained pipeline
+├── immutable model_id
+├── creation time
+├── software version
+└── training configuration
+
+artifacts/runs.model
+├── final artifact SHA-256
+├── publication events
+├── release tags
+└── legacy reconciliation records
+
+artifacts/pointers.json
+├── latest
+└── stable
+```
+
+`load_model()` loads the immutable artifact and then overlays the newest valid
+registry state for the same `model_id`. Publishing, unpublishing, and promotion do
+not change the artifact checksum.
+
+Common lifecycle commands:
+
+```bash
+make train-save
+
+make publish \
+  ARTIFACT=artifacts/model_YYYYMMDD_HHMMSS-local.joblib \
+  PUBLISH_ARGS="--release-tag v1.0"
+
+make promote \
+  ARTIFACT=artifacts/model_YYYYMMDD_HHMMSS-local.joblib
+
+make audit-models
+```
+
+`make audit-models` is read-only. `make reconcile-models` appends an authoritative
+checksum and lifecycle record for a legacy artifact without rewriting its
+`.joblib` file.
+
+#### Reference Lifecycle Validation
+
+The completed lifecycle was exercised on 25 August 2026 with the reference
+artifact `model_20260825_160522-reference.joblib`:
+
+```text
+held-out accuracy: 0.9613
+minimum required:  0.9000
+software version:  0.2.0
+release tag:       v1.2
+published:         true
+artifact SHA-256:  ba82b07d67471c5be017b6c299e52eaf8e2a85d70d069ed2ac8ec1ea4a2d8fa6
+latest pointer:    model_20260825_160522-reference.joblib
+stable pointer:    model_20260825_160522-reference.joblib
+```
+
+The artifact hash was identical before publication and after promotion. Loading
+the `stable` pointer through the FastAPI prediction path returned HTTP 200 and
+reported the same model ID, software version, release tag, and publication state
+used by the Streamlit UI.
 
 ### Streamlit UI
 
@@ -223,9 +298,7 @@ admin/
 ├── manage_tokens.py
 ├── token_consumer.py
 ├── token_issuance.py
-├── token_rotation.py
-├── backup_secrets.sh
-└── restore_secrets.sh
+└── token_rotation.py
 
 deploy/
 ├── docker-compose.product.yml
@@ -276,14 +349,12 @@ scripts/
 .
 ├── .github/
 │   └── workflows/              # CI, Docker, product, monitoring, and Grafana workflows
-├── admin/                      # Host-side token lifecycle and secret backup tooling
+├── admin/                      # Host-side token lifecycle tooling
 │   ├── manage_tokens.py
 │   ├── token_consumer.py
 │   ├── token_issuance.py
-│   ├── token_rotation.py
-│   ├── backup_secrets.sh
-│   └── restore_secrets.sh
-├── artifacts/                  # Model artifacts, pointers, and run logs
+│   └── token_rotation.py
+├── artifacts/                  # Immutable models, pointers, registry, and history
 ├── deploy/                     # VM deployment Compose files and token principal policy
 │   ├── docker-compose.product.yml
 │   ├── docker-compose.monitor.yml
@@ -298,7 +369,8 @@ scripts/
 │   ├── metrics.conf
 │   └── ui.conf
 ├── logs/                       # Local application log files
-├── scripts/                    # Manual token, monitoring-auth, and utility scripts
+├── scripts/                    # Model audit, token, monitoring-auth, and utility scripts
+│   ├── audit_model_registry.py
 │   ├── audit_tokens.py
 │   ├── generate_prometheus_config.sh
 │   ├── issue_token.py
@@ -640,6 +712,9 @@ Current tests cover:
 - model training and prediction
 - artifact save/load/versioning behavior
 - promotion behavior
+- immutable publication and external registry overlays
+- release-tag uniqueness and controlled version jumps
+- malformed and legacy registry compatibility
 - token-registry auditing
 - token audit Prometheus metric collection
 - token issuance and replacement semantics

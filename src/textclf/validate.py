@@ -21,8 +21,11 @@ def main() -> int:
 
     report = {
         "model_path": args.model_path,
-        "version": getattr(meta, "version", "?"),
+        "model_id": getattr(meta, "model_id", "?"),
+        "software_version": getattr(meta, "software_version", "?"),
         "created_at": getattr(meta, "created_at", "?"),
+        "published": bool(getattr(meta, "published", False)),
+        "release_tag": getattr(meta, "release_tag", "unreleased"),
         "accuracy": acc,
         "min_required": args.min_accuracy,
         "passed": acc >= args.min_accuracy,

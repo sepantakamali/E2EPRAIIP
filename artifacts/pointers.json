@@ -1,4 +1,4 @@
 {
-  "latest": "model_20260313_175256-experiment5.joblib",
-  "stable": "model_20260307_164001.joblib"
+  "latest": "model_20260825_160522-reference.joblib",
+  "stable": "model_20260825_160522-reference.joblib"
 }

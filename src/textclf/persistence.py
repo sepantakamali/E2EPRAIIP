@@ -14,6 +14,8 @@ from typing import Any, Tuple
 
 import joblib
 
+import uuid
+
 # ----- Artifact locations -----
 ARTIFACTS_DIR: Path = Path(os.getenv("ARTIFACTS_DIR", "artifacts"))
 
@@ -56,6 +58,32 @@ def _sha256(path: Path) -> str:
 def _append_runlog(entry: dict[str, Any]) -> None:
     RUNLOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     RUNLOG_PATH.open("a").write(json.dumps(entry) + "\n")
+
+
+def _latest_registry_entry(model_id: str) -> dict[str, Any] | None:
+    """Return the newest registry entry for a model, ignoring bad lines."""
+    if not model_id or not RUNLOG_PATH.exists():
+        return None
+
+    latest: dict[str, Any] | None = None
+    for line in RUNLOG_PATH.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except (TypeError, ValueError):
+            continue
+        # Only records created under the immutable-artifact design are
+        # authoritative mutable state. Older rows used ``sha256`` and may
+        # contain publication fields that became stale when artifacts were
+        # rewritten later.
+        if (
+            isinstance(entry, dict)
+            and entry.get("model_id") == model_id
+            and entry.get("artifact_sha256")
+        ):
+            latest = entry
+    return latest
 
 
 def _read_pointers() -> dict[str, str]:
@@ -102,12 +130,15 @@ def _resolve_pointer_path(name: str) -> Path:
 class ModelMetadata:
     # Software/package version (SemVer) of the code that produced this artifact
     software_version: str
-    # Immutable identifier for this model build (created_at + short content hash)
+    # Immutable identifier for this model build
     model_id: str
     created_at: str
     config: Any | None = None
-    # Full content hash of the saved artifact (hex)
+
+    # Legacy field retained for compatibility with existing artifacts.
+    # New artifacts do not use this as their integrity checksum.
     sha256: str | None = None
+
     # Release metadata
     published: bool = False
     release_tag: str = "unreleased"
@@ -145,9 +176,13 @@ def save_model(
             config_dict = None
 
     created_at = _utc_time()
+
+    # Model identity is independent of the serialized artifact bytes.
+    model_id = f"{created_at}_{uuid.uuid4().hex}"
+
     meta = ModelMetadata(
         software_version=_pkg_version(),
-        model_id="",  # filled after artifact is written and hashed
+        model_id=model_id,
         created_at=created_at,
         config=config_dict,
     )
@@ -156,18 +191,23 @@ def save_model(
     target = ARTIFACTS_DIR / fname
 
     md_dict = asdict(meta)
-    # Backwards-compat for older readers/tests expecting metadata['version']
+
+    # Backwards compatibility for older readers expecting metadata["version"].
     md_dict["version"] = meta.software_version
 
-    payload = {"pipeline": pipeline, "metadata": md_dict}
+    payload = {
+        "pipeline": pipeline,
+        "metadata": md_dict,
+    }
+
+    # Write the canonical artifact exactly once.
     joblib.dump(payload, target)
 
-    # compute checksum AFTER final write
-    checksum = _sha256(target)
-    meta.sha256 = checksum
-    content_hash = checksum[:8]
-    meta.model_id = f"{meta.created_at}_{content_hash}"
+    # Hash the FINAL serialized artifact.
+    artifact_sha256 = _sha256(target)
 
+    # The artifact cannot contain its own artifact hash. Store that digest
+    # externally in the registry/run log instead.
     run_entry = {
         "artifact": str(target),
         "created_at": meta.created_at,
@@ -177,16 +217,10 @@ def save_model(
         "published": meta.published,
         "release_tag": meta.release_tag,
         "tag": tag,
-        "sha256": checksum,
+        "artifact_sha256": artifact_sha256,
         "config": meta.config,
     }
     _append_runlog(run_entry)
-
-    # Persist updated metadata (model_id + sha256) into the artifact itself
-    md_dict = asdict(meta)
-    md_dict["version"] = meta.software_version  # legacy
-    payload = {"pipeline": pipeline, "metadata": md_dict}
-    joblib.dump(payload, target)
 
     # Maintain latest pointer in the manifest.
     if make_latest:
@@ -225,7 +259,9 @@ def load_model(path: Path | str) -> Tuple[Any, ModelMetadata]:
 
         # Backfill missing fields for older pickled dataclass instances
         if not getattr(meta, "software_version", None):
-            meta.software_version = _pkg_version()
+            meta.software_version = str(
+                getattr(meta, "version", None) or _pkg_version()
+            )
 
         if not getattr(meta, "created_at", None):
             meta.created_at = _utc_time()
@@ -255,30 +291,35 @@ def load_model(path: Path | str) -> Tuple[Any, ModelMetadata]:
     elif isinstance(md, dict):
         created_at = md.get("created_at", _utc_time())
         software_version = md.get("software_version") or md.get("version") or _pkg_version()
-        sha = md.get("sha256")
+        legacy_sha = md.get("sha256")
         model_id = md.get("model_id")
 
-        # Best-effort backfill for older artifacts
-        if not sha:
-            try:
-                sha = _sha256(p)
-            except Exception:
-                sha = None
-        if not model_id and sha:
-            model_id = f"{created_at}_{sha[:8]}"
+        # Preserve historical identity for older artifacts that embedded a checksum,
+        # but do not synthesize an embedded checksum for new artifacts.
+        if not model_id and legacy_sha:
+            model_id = f"{created_at}_{str(legacy_sha)[:8]}"
 
         meta = ModelMetadata(
             software_version=str(software_version),
             model_id=str(model_id) if model_id else "",
             created_at=str(created_at),
             config=md.get("config"),
-            sha256=str(sha) if sha else None,
+            sha256=str(legacy_sha) if legacy_sha else None,
             published=bool(md.get("published", False)),
             release_tag=str(md.get("release_tag", "unreleased")),
         )
     else:
         created_at = _utc_time()
         meta = ModelMetadata(software_version=_pkg_version(), model_id="", created_at=created_at)
+
+    # Publication is mutable registry state. Overlay the newest values without
+    # changing the immutable metadata stored in the artifact itself.
+    registry_entry = _latest_registry_entry(meta.model_id)
+    if registry_entry is not None:
+        if "published" in registry_entry:
+            meta.published = bool(registry_entry["published"])
+        if "release_tag" in registry_entry:
+            meta.release_tag = str(registry_entry["release_tag"] or "unreleased")
 
     return pipe, meta
 
@@ -320,7 +361,10 @@ def _list_published_releases() -> list[tuple[str, tuple[int, int]]]:
     if not ARTIFACTS_DIR.exists():
         return releases
 
+    legacy_aliases = {LATEST_PATH.name, STABLE_PATH.name}
     for p in ARTIFACTS_DIR.glob("model_*.joblib"):
+        if p.name in legacy_aliases:
+            continue
         try:
             _, meta = load_model(p)
             if meta.published and meta.release_tag and meta.release_tag != "unreleased":
@@ -358,32 +402,34 @@ def publish_model(
     if not _path.exists():
         raise FileNotFoundError(f"Artifact not found: {_path}")
 
-    pipe, meta = load_model(_path)
+    _, meta = load_model(_path)
+
+    normalized_tag = str(release_tag).strip() if release_tag is not None else ""
+
+    if unpublish and normalized_tag:
+        raise ValueError("Can't pass a release tag while unpublishing.")
 
     if meta.published and not edit:
         raise ValueError(f"Artifact {_path} is already published as {meta.release_tag}")
-    elif meta.published and edit:
-        if unpublish and (release_tag is None or str(release_tag).strip() == ""):
-            meta.published = False
-            log.info(f"Unpublished {meta.model_id} | release_tag={meta.release_tag}")
-        elif unpublish and (release_tag != None or str(release_tag).strip() != ""):
-            raise ValueError("Can't pass a release tag for unpublishing")
+
+    if unpublish:
+        meta.published = False
+        log.info(f"Unpublished {meta.model_id} | release_tag={meta.release_tag}")
 
     # If no formal release tag is provided, simply mark as published and keep
     # the default/unreleased tag. This is useful for experimental builds that
     # should appear in the UI without being treated as official releases.
-    if (release_tag is None or str(release_tag).strip() == "") and not edit:
+    elif not normalized_tag and not edit:
         meta.published = True
         meta.release_tag = meta.release_tag or "unreleased"
-    elif release_tag != None:
-        release_tag = str(release_tag).strip()
-        major, minor = _parse_release(release_tag)
+    elif normalized_tag:
+        major, minor = _parse_release(normalized_tag)
 
         # check uniqueness
         releases = _list_published_releases()
         for tag, _ in releases:
-            if tag == release_tag:
-                raise ValueError(f"release_tag '{release_tag}' already exists")
+            if tag == normalized_tag:
+                raise ValueError(f"release_tag '{normalized_tag}' already exists")
 
         # determine latest release
         if releases:
@@ -402,21 +448,25 @@ def publish_model(
 
             if jump and not (force and allow_skip):
                 raise ValueError(
-                    f"Release jump detected: latest={latest_tag}, attempted={release_tag}. "
+                    f"Release jump detected: latest={latest_tag}, attempted={normalized_tag}. "
                     "Use force=True and allow_skip=True to override."
                 )
 
         meta.published = True if not edit else meta.published
-        meta.release_tag = release_tag
+        meta.release_tag = normalized_tag
 
-    # rewrite artifact with updated metadata
-    md_dict = asdict(meta)
-    md_dict["version"] = meta.software_version  # legacy
-
-    payload = {"pipeline": pipe, "metadata": md_dict}
-
-    tmp = _path.with_suffix(_path.suffix + ".tmp")
-    joblib.dump(payload, tmp)
-    tmp.replace(_path)
+    # Append mutable publication state to the external registry. The model
+    # artifact is never rewritten, so its original digest remains valid.
+    _append_runlog(
+        {
+            "event": "publication_updated",
+            "artifact": str(_path),
+            "artifact_sha256": _sha256(_path),
+            "updated_at": _utc_time(),
+            "model_id": meta.model_id,
+            "published": meta.published,
+            "release_tag": meta.release_tag,
+        }
+    )
 
     log.info(f"\nModel_id={meta.model_id} | published={meta.published} | release_tag={meta.release_tag}")

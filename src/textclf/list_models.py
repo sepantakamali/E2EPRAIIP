@@ -1,7 +1,7 @@
 import argparse
 from typing import Any
 
-from textclf.persistence import RUNLOG_PATH, publish_model, load_model, ARTIFACTS_DIR
+from textclf.persistence import ARTIFACTS_DIR, LATEST_PATH, STABLE_PATH, load_model
 
 
 def _format_bool(v: bool) -> str:
@@ -11,9 +11,8 @@ def _format_bool(v: bool) -> str:
 def load_model_registry() -> list[dict[str, Any]]:
     """Load model registry records from the artifact directory.
 
-    The artifact metadata is the source of truth because publish/promote
-    operations modify the joblib metadata directly. The run log is only
-    historical bookkeeping and may contain stale fields.
+    ``load_model`` combines immutable artifact metadata with the newest
+    publication state in the external registry.
     """
 
     if not ARTIFACTS_DIR.exists():
@@ -21,7 +20,10 @@ def load_model_registry() -> list[dict[str, Any]]:
 
     records: list[dict[str, Any]] = []
 
+    legacy_aliases = {LATEST_PATH.name, STABLE_PATH.name}
     for artifact in sorted(ARTIFACTS_DIR.glob("model_*.joblib")):
+        if artifact.name in legacy_aliases:
+            continue
         try:
             _, meta = load_model(artifact)
 

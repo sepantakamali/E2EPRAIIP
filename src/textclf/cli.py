@@ -84,8 +84,16 @@ def build_parser() -> argparse.ArgumentParser:
     # publish
     p_publish = sub.add_parser("publish", help="Publish a model artifact with release tag")
     p_publish.add_argument("artifact", help="Path to artifact")
-    p_publish.add_argument("--edit", help="Change publish status or release tag")
-    p_publish.add_argument("--unpublish", help="Discontinue a published model")
+    p_publish.add_argument(
+        "--edit",
+        action="store_true",
+        help="Change publish status or release tag",
+    )
+    p_publish.add_argument(
+        "--unpublish",
+        action="store_true",
+        help="Discontinue a published model",
+    )
     p_publish.add_argument("--release-tag", help="Release tag (vMAJOR.MINOR)")
     p_publish.add_argument("--force", action="store_true")
     p_publish.add_argument("--allow-skip", action="store_true")

@@ -1,55 +1,72 @@
+.DEFAULT_GOAL := check
+
+VENV ?= .venv
+PYTHON ?= $(VENV)/bin/python
+PIP ?= $(VENV)/bin/pip
+PYTEST ?= $(VENV)/bin/pytest
+MYPY ?= $(VENV)/bin/mypy
+UVICORN ?= $(VENV)/bin/uvicorn
+STREAMLIT ?= $(VENV)/bin/streamlit
+OPENAPI_GENERATOR ?= $(VENV)/bin/openapi-python-client
+
 .PHONY: \
 	venv install test type typecheck check \
-	api ui client sdk \
-	train train-save publish promote stable \
+	api ui client sdk audit-models reconcile-models \
+	train train-save publish promote \
 	build run product-up product-down product-logs \
 	monitor-up monitor-down monitor-logs \
 	compose compose-down
 
 venv:
-	python -m venv .venv && . .venv/bin/activate && pip install -U pip
+	python3 -m venv "$(VENV)"
+	$(PYTHON) -m pip install -U pip
 
 install:
-	pip install -e ".[dev]"
+	$(PIP) install -e ".[dev]"
 
 test:
-	pytest -q
+	$(PYTEST) -q
 
 type:
-	mypy src
+	$(MYPY) src admin
 
 typecheck: type
 
 check:
-	pytest -q
-	mypy src
+	$(PYTEST) -q
+	$(MYPY) src admin
 
 api:
-	SHOW_DOCS=1 INTERNAL_ONLY_ENABLED=false RATE_LIMIT_ENABLED=0 uvicorn textclf.api:app --host 127.0.0.1 --port 8000 --loop asyncio --reload
+	SHOW_DOCS=1 INTERNAL_ONLY_ENABLED=false RATE_LIMIT_ENABLED=0 $(UVICORN) textclf.api:app --host 127.0.0.1 --port 8000 --loop asyncio --reload
 
 ui:
-	streamlit run ui/app.py
+	$(STREAMLIT) run ui/app.py
 
 client:
-	python client_demo.py
+	$(PYTHON) client_demo.py
 
 sdk:
-	openapi-python-client generate --url http://127.0.0.1:8000/openapi.json --overwrite --output-path textclf_client
+	$(OPENAPI_GENERATOR) generate --url http://127.0.0.1:8000/openapi.json --overwrite --output-path textclf_client
+
+audit-models:
+	$(PYTHON) -m scripts.audit_model_registry
+
+reconcile-models:
+	$(PYTHON) -m scripts.audit_model_registry --reconcile
 
 train:
-	python -m textclf.cli train
+	$(PYTHON) -m textclf.cli train
 
 train-save:
-	python -m textclf.cli train --save --tag local
+	$(PYTHON) -m textclf.cli train --save --tag local
 
 publish:
-	python -m textclf.cli publish
+	@test -n "$(ARTIFACT)" || (echo "Usage: make publish ARTIFACT=artifacts/model.joblib PUBLISH_ARGS='--release-tag v1.0'" && exit 2)
+	$(PYTHON) -m textclf.cli publish "$(ARTIFACT)" $(PUBLISH_ARGS)
 
 promote:
-	python -m textclf.cli promote
-
-stable:
-	python scripts/build_stable_image.py
+	@test -n "$(ARTIFACT)" || (echo "Usage: make promote ARTIFACT=artifacts/model.joblib" && exit 2)
+	$(PYTHON) -m textclf.cli promote "$(ARTIFACT)"
 
 build:
 	docker build -t textclf-api .
