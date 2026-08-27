@@ -2288,7 +2288,7 @@
             "spec": {
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-16"
+                "name": "panel-17"
               }
             }
           },
@@ -2297,7 +2297,7 @@
             "spec": {
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-17"
+                "name": "panel-16"
               }
             }
           },
