@@ -268,10 +268,6 @@ LINKS = {
     "github": "https://github.com/sepantakamali/",
     "linkedin": "https://www.linkedin.com/in/sepanta-kamali-ab71691b6",
     "grafana": os.getenv("GRAFANA_DASHBOARD_URL", "").strip(),
-    "health": "/health",
-    "docs": "/docs",
-    "openapi": "/openapi.json",
-    "metrics": "/metrics",
 }
 
 # ----- UX Config -----
@@ -694,32 +690,20 @@ with st.sidebar:
         st.link_button("LinkedIn", LINKS["linkedin"], width="stretch")
 
     st.divider()
-    st.markdown("<div class='ui-side-title'>API</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ui-side-title'>Service status</div>", unsafe_allow_html=True)
     if api_base_url:
         if status.ok:
-            st.success("✅ Reachable")
+            st.success("✅ Inference API online")
         else:
-            st.error("❌ Unreachable")
+            st.error("❌ Inference API unavailable")
+    else:
+        st.warning("API endpoint is not configured")
 
-        st.markdown("<div class='ui-side-title'>Endpoints</div>", unsafe_allow_html=True)
-        inspection_column1, inspection_column2 = st.columns(2)
-
-        health_url = f"{api_base_url}{LINKS['health']}"
-        docs_url = f"{api_base_url}{LINKS['docs']}"
-        openapi_url = f"{api_base_url}{LINKS['openapi']}"
-        metrics_url = f"{api_base_url}{LINKS['metrics']}"
-
-        with inspection_column1:
-            st.link_button("API Health", health_url, width="stretch")
-            st.link_button("OpenAPI Spec", openapi_url, width="stretch")
-
-        with inspection_column2:
-            st.link_button("Swagger Docs", docs_url, width="stretch")
-            st.link_button("Prometheus Metrics", metrics_url, width="stretch")
+    st.caption("Authenticated model inference with health, readiness, and metrics monitoring.")
 
     st.divider()
     st.markdown("<div class='ui-side-title'>Project</div>", unsafe_allow_html=True)
-    st.caption("Inference API • MLOps • Observability • Client SDK")
+    st.caption("Model lifecycle • Inference API • Observability • Client SDK")
 
     if LINKS["grafana"]:
         st.link_button("Grafana Dashboard", LINKS["grafana"], width="stretch")
@@ -728,28 +712,26 @@ with st.sidebar:
 with st.expander("About this system", expanded=False):
     st.markdown(
         """
-        This interface connects to a production-style NLP inference API built with FastAPI and Docker.
+        This interface is the client for a containerized NLP inference service built with FastAPI.
 
-        **Backend capabilities**
-        - Pointer-based model selection (`stable` / `latest`)
-        - Immutable model builds identified by `model_id`
-        - Formal releases via `release_tag` (`vMAJOR.MINOR`) and `published` status
-        - Health endpoint (`/health`), OpenAPI spec (`/openapi.json`), Swagger docs (`/docs`) 
-        - Rate limiting and request validation  
-        - Prometheus metrics (`/metrics`) and Grafana dashboards  
-        - OpenAPI schema used to generate a typed Python client SDK
-        
+        - Authenticated single, batch, and file-based predictions
+        - Published model selection with immutable `model_id` identity
+        - Optional probabilities, structured results, CSV export, and raw JSON
+        - Health and readiness checks, request validation, and rate limiting
+        - Internal Prometheus metrics, Grafana dashboards, and email alerts
+        - An OpenAPI-generated Python client SDK for downstream integrations
         """
     )
 
 with st.expander("Engineering Notes", expanded=False):
     st.markdown(
         """
-        - **Model lifecycle:** save → publish (optional release tag) → promote to stable pointer
-        - **Identity:** `model_id` is immutable per artifact; `release_tag` is human-facing; pointers remain separate runtime aliases
-        - **Observability:** Prometheus metrics and request traceability via request IDs
-        - **Reliability:** response validation, tests, typing, containerized deployment
-        - **Registry:** published artifacts are exposed via `/models` for UI and client integrations
+        - **Artifact lifecycle:** immutable model files are saved once; publish and promotion events are recorded separately
+        - **Runtime resolution:** `latest` and `stable` pointers select models without modifying their artifacts
+        - **Metadata:** immutable build identity is stored with the artifact; mutable release state is reconciled from the registry log
+        - **Security:** scoped bearer tokens, rate limiting, and internal-only operational endpoints
+        - **Reliability:** typed contracts, response validation, automated tests, containerized deployment, and rollback-aware releases
+        - **Observability:** request metrics and IDs, version-controlled dashboards, and Grafana-managed email alerts
         """
     )
 

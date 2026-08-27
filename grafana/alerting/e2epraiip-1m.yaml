@@ -1,0 +1,337 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: e2epraiip-1m
+      folder: E2EPRAIIP
+      interval: 1m
+      rules:
+        - uid: dfwft2mlm1p8gf
+          title: E2EPRAIIP API unavailable
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: up{job="textclf-api"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: Prometheus cannot reach the textclf-api service. Check the VM, Docker containers, and API health endpoint.
+            summary: E2EPRAIIP API is unavailable
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP
+        - uid: afwftl8bqzfnkb
+          title: E2EPRAIIP prediction errors
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: sum(increase(prediction_request_errors_total[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: The textclf API recorded one or more prediction errors during the last five minutes. Check the API logs and recent requests.
+            summary: E2EPRAIIP prediction errors detected
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP
+        - uid: dfwfu8x6ifnr4d
+          title: E2EPRAIIP token registry invalid
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: textclf_token_registry_valid
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: The API token registry could not be validated. Check the registry file, configuration, permissions, and API logs.
+            summary: The API token registry could not be validated. Check its file, configuration, and API logs.
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP
+        - uid: bfwfucj6koydcf
+          title: E2EPRAIIP active token expired
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: textclf_token_active_expired_total
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: At least one enabled API token has expired. Identify the affected token and rotate or disable it.
+            summary: At least one enabled API token has expired. Rotate or disable it.
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP
+        - uid: afwfuffi9iygwe
+          title: E2EPRAIIP token expiry warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: textclf_token_active_warning_total
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: At least one active API token is approaching expiration. Review its remaining lifetime and schedule rotation.
+            summary: At least one active API token is approaching expiration. Plan its rotation.
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP
+        - uid: bfwfuir0u4nwgf
+          title: E2EPRAIIP high prediction latency
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: grafanacloud-prom
+              model:
+                editorMode: code
+                expr: histogram_quantile(0.95, sum by (le) (rate(prediction_latency_seconds_bucket[5m]))) >= bool 1
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: The five-minute p95 prediction latency exceeded one second. Check API load, VM resources, and recent requests.
+            summary: The five-minute p95 prediction latency is above one second. Check API load and resource usage.
+          labels:
+            service: e2epraiip
+          isPaused: false
+          notification_settings:
+            receiver: E2EPRAIIP

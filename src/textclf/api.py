@@ -61,8 +61,8 @@ PREDICTIONS = Counter("prediction_requests_total", "Total prediction requests")
 PREDICTION_LATENCY = Histogram(
     "prediction_latency_seconds",
     "Prediction latency (seconds)",
-    # Checking more important percentiles
-    buckets=(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0)
+    # Cover both fast responses and slower production inference calls.
+    buckets=(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
 PREDICTION_ERRORS = Counter("prediction_request_errors_total", "Total prediction errors")
 

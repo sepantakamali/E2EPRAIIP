@@ -5,8 +5,8 @@
     "name": "selkdgd",
     "namespace": "stacks-1405410",
     "uid": "4c93e9e6-0376-4dc3-9cf5-404633811978",
-    "resourceVersion": "2090491685780656128",
-    "generation": 72,
+    "resourceVersion": "2092658103451299840",
+    "generation": 74,
     "creationTimestamp": "2026-07-06T17:22:33Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "2526397546590208"
@@ -15,7 +15,7 @@
       "grafana.app/createdBy": "user:bf1179bptoef4d",
       "grafana.app/saved-from-ui": "Grafana Cloud",
       "grafana.app/updatedBy": "user:bf1179bptoef4d",
-      "grafana.app/updatedTimestamp": "2026-08-20T17:30:31Z"
+      "grafana.app/updatedTimestamp": "2026-08-26T16:59:06Z"
     }
   },
   "spec": {
@@ -84,7 +84,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -227,7 +227,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -360,7 +360,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -446,7 +446,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -478,15 +478,11 @@
                         "color": "green"
                       },
                       {
-                        "value": 0.25,
-                        "color": "#EAB839"
-                      },
-                      {
                         "value": 0.5,
-                        "color": "orange"
+                        "color": "yellow"
                       },
                       {
-                        "value": 0.75,
+                        "value": 1,
                         "color": "red"
                       }
                     ]
@@ -579,7 +575,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -712,7 +708,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -832,7 +828,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -953,7 +949,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -989,7 +985,7 @@
                         "color": "yellow"
                       },
                       {
-                        "value": 0.75,
+                        "value": 1,
                         "color": "red"
                       }
                     ]
@@ -1046,7 +1042,7 @@
         "kind": "Panel",
         "spec": {
           "id": 17,
-          "title": "P05 Prediction Latency",
+          "title": "P90 Prediction Latency",
           "description": "",
           "links": [],
           "data": {
@@ -1065,7 +1061,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "histogram_quantile(\n0.05,\nsum by (le)(\nrate(prediction_latency_seconds_bucket{job=\"textclf-api\"}[5m])\n)\n)",
+                        "expr": "histogram_quantile(\n0.90,\nsum by (le)(\nrate(prediction_latency_seconds_bucket{job=\"textclf-api\"}[5m])\n)\n)",
                         "legendFormat": "__auto",
                         "range": true
                       }
@@ -1082,7 +1078,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -1118,7 +1114,7 @@
                         "color": "yellow"
                       },
                       {
-                        "value": 0.75,
+                        "value": 1,
                         "color": "red"
                       }
                     ]
@@ -1211,7 +1207,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -1247,7 +1243,7 @@
                         "color": "yellow"
                       },
                       {
-                        "value": 0.75,
+                        "value": 1,
                         "color": "red"
                       }
                     ]
@@ -1340,7 +1336,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1442,7 +1438,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -1583,7 +1579,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1667,7 +1663,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1751,7 +1747,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "legend": {
@@ -1875,7 +1871,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1962,7 +1958,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -2051,7 +2047,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "annotations": {
@@ -2087,7 +2083,7 @@
                         "color": "yellow"
                       },
                       {
-                        "value": 0.75,
+                        "value": 1,
                         "color": "red"
                       }
                     ]
@@ -2180,7 +2176,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-31997728368",
+            "version": "13.3.0-32481267925",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -2407,20 +2403,7 @@
         ]
       }
     },
-    "links": [
-      {
-        "title": "Prometheus Alerts",
-        "type": "link",
-        "icon": "external link",
-        "tooltip": "",
-        "url": "http://141.147.103.125:9090/alerts",
-        "tags": [],
-        "asDropdown": true,
-        "targetBlank": false,
-        "includeVars": false,
-        "keepTime": false
-      }
-    ],
+    "links": [],
     "liveNow": false,
     "preload": false,
     "tags": [],

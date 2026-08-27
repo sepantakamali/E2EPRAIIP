@@ -16,7 +16,7 @@ The current reference application is a text classification model served through 
 - Bearer-token authentication with scoped service principals
 - Controlled token lifecycle management with planning, verification, rotation, overlap, rollback, and audit metrics
 - Encrypted off-VM secret backup and tested restore using restic and OCI Object Storage
-- Prometheus metrics, Prometheus alert rules, and Grafana Cloud dashboards
+- Prometheus metrics, local Prometheus rules, Grafana Cloud dashboards, and email alerting
 - Docker Compose stacks for product and monitoring environments under `deploy/`
 - A generated OpenAPI Python SDK for downstream integration
 - Automated quality gates with `pytest`, `mypy`, GitHub Actions, and GHCR image publishing
@@ -279,6 +279,7 @@ Monitoring support includes:
 - Prometheus scraping
 - Prometheus alert rules
 - Grafana Cloud dashboards provisioned from version-controlled JSON
+- Grafana-managed alert rules with email notifications
 - dashboard-as-code synchronized through GitHub Actions
 - Prometheus `remote_write` to Grafana Cloud  
 - latency percentiles
@@ -359,7 +360,9 @@ scripts/
 │   ├── docker-compose.product.yml
 │   ├── docker-compose.monitor.yml
 │   └── token-principals.yml
-├── grafana/                    # Grafana Cloud dashboard-as-code
+├── grafana/                    # Grafana Cloud observability configuration
+│   ├── alerting/
+│   │   └── e2epraiip-1m.yaml  # Exported Grafana-managed alert rules
 │   └── dashboards/
 │       └── e2epraiip-overview.json
 ├── monitoring/                 # Prometheus scrape and alert configuration
@@ -626,7 +629,10 @@ localhost only
 Grafana:
 Grafana Cloud
 ```
-Prometheus runs locally on the VM, evaluates alert rules, and forwards metrics to Grafana Cloud using remote_write.
+Prometheus runs locally on the VM, evaluates its local rules, and forwards metrics
+to Grafana Cloud using `remote_write`. Grafana Cloud separately evaluates the
+managed alert rules and sends notifications through the `E2EPRAIIP` contact
+point.
 
 When running the API directly outside Docker, these are also available if docs are enabled:
 
@@ -678,6 +684,17 @@ The Grafana Cloud dashboard includes:
 - API memory usage (RSS)
 - Open file descriptors
 - Python garbage collection activity
+
+### Grafana-managed alerts
+
+The Grafana Cloud alert-rule export is version-controlled at
+`grafana/alerting/e2epraiip-1m.yaml`. Its six rules cover API availability,
+prediction errors, token-registry validity, expired and expiring active tokens,
+and p95 prediction latency. Grafana evaluates them every minute and sends email
+notifications through the `E2EPRAIIP` contact point. Import this file through
+Grafana Alerting when restoring the alert group in another stack.
+Create the `E2EPRAIIP` contact point before importing because the export refers
+to that receiver by name and does not contain its credentials.
 
 ---
 
