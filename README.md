@@ -1,8 +1,11 @@
-# End-to-End Production-Ready AI Inference Platform
+# End-to-End Production-Ready Text Classification Inference Platform
 
-A reusable production-ready AI inference platform demonstrating secure deployment, model serving, observability, authentication, CI/CD, and cloud-native infrastructure.
+A deployed reference implementation demonstrating secure model serving, artifact
+versioning, authentication, observability, CI/CD, and cloud infrastructure.
 
-The current reference application is a text classification model served through FastAPI, but the platform is designed to host multiple AI inference workloads.
+The application and its API contracts are specific to binary text classification.
+Its engineering practices are intended to be adapted to other inference projects,
+rather than presented as a generic multi-workload serving framework.
 
 > Repository: <https://github.com/sepantakamali/E2EPRAIIP>
 
@@ -34,11 +37,12 @@ The project is easier to understand as several connected layers rather than one 
 ```mermaid
 flowchart LR
     Train[Train Model] --> Artifact[Versioned Model Artifact]
-    Artifact --> Registry[Artifact Registry]
+    Artifact --> Registry[Artifact Files and Registry Log]
     Registry --> API[FastAPI API]
-    API --> UI[Streamlit UI]
-    API --> Metrics[Prometheus Metrics]
-    Metrics --> Grafana[Grafana Cloud Dashboard]
+    UI[Streamlit UI] --> API
+    API --> Metrics[Prometheus Metrics Endpoint]
+    Metrics --> Prometheus[Prometheus]
+    Prometheus --> Grafana[Grafana Cloud Dashboard and Alerts]
     API --> Schema[OpenAPI Schema]
     Schema --> SDK[Generated Python SDK]
 ```
@@ -52,19 +56,17 @@ flowchart TD
     Save --> Meta[Embedded Build Metadata]
     Save --> Hash[Hash Final Artifact Bytes]
     Hash --> Runs[Append Registry Record]
-    Save --> Pointers[Update Pointers File]
+    Save --> Latest[Update Latest Pointer]
 
-    Pointers --> Latest[Latest Pointer]
-    Pointers --> Stable[Stable Pointer]
-
-    Save --> Promote[Promote Artifact]
-    Promote --> Stable
-    Save --> Publish[Publish or Unpublish]
+    Save -. Optional .-> Promote[Promote Artifact]
+    Promote --> Stable[Update Stable Pointer]
+    Save -. Optional .-> Publish[Publish or Unpublish]
     Publish --> Runs
     Publish --> Release[Optional Release Tag]
 
-    Latest --> Resolve[Model Resolution]
-    Stable --> Resolve
+    Latest --> Pointers[Pointers File]
+    Stable --> Pointers
+    Pointers --> Resolve[Model Resolution]
     Meta --> Resolve
     Runs --> Resolve
     Resolve --> API[FastAPI Runtime State]
@@ -108,12 +110,14 @@ flowchart TD
     MonitorCompose[Monitoring Compose Stack] --> Prometheus[Prometheus Container]
 
     UI --> API
-    API --> Proxy
-    Proxy --> Prometheus
+    Prometheus -->|Scrape| Proxy
+    Proxy -->|Authenticated metrics request| API
 
-    Prometheus --> Alerts[Prometheus Alert Rules]
+    Prometheus --> LocalAlerts[Local Prometheus Alert Rules]
     Prometheus --> RemoteWrite[Grafana Cloud Prometheus]
     RemoteWrite --> Dashboard[Grafana Cloud Dashboard]
+    RemoteWrite --> ManagedAlerts[Grafana-managed Alert Rules]
+    ManagedAlerts --> Email[Email Contact Point]
 ```
 
 ---
@@ -252,7 +256,7 @@ The Streamlit interface supports:
 - raw JSON inspection
 - request history
 - CSV export
-- helpful links to API and monitoring endpoints
+- live service status and project links
 
 ### Generated Python SDK
 
@@ -308,6 +312,7 @@ deploy/
 
 monitoring/
 ├── prometheus.yml
+├── prometheus.yml.tmpl
 └── alerts.yml
 
 nginx/
@@ -315,6 +320,8 @@ nginx/
 └── ui.conf
 
 grafana/
+├── alerting/
+│   └── e2epraiip-1m.yaml
 └── dashboards/
     └── e2epraiip-overview.json
 
@@ -367,6 +374,7 @@ scripts/
 │       └── e2epraiip-overview.json
 ├── monitoring/                 # Prometheus scrape and alert configuration
 │   ├── prometheus.yml
+│   ├── prometheus.yml.tmpl
 │   └── alerts.yml
 ├── nginx/                      # Metrics proxy configuration
 │   ├── metrics.conf
@@ -679,7 +687,7 @@ The Grafana Cloud dashboard includes:
 - Predictions served (last hour)
 - Prediction error count
 - Prediction error rate
-- P05, P50, P95 and P99 latency
+- average, P50, P90, P95 and P99 latency
 - CPU usage
 - API memory usage (RSS)
 - Open file descriptors
@@ -757,7 +765,7 @@ GitHub Actions currently provide:
 
 - CI workflow:
   - dependency installation
-  - `mypy src admin`
+  - `mypy src`
   - `pytest -q`
 - Docker workflow:
   - Multi-architecture Docker build (`linux/amd64`, `linux/arm64`)
@@ -789,10 +797,9 @@ Implemented:
 - daily systemd secret backup scheduling
 - automatic post-rotation backup
 
-Remaining:
+Optional future extension:
 
-- Infrastructure as Code (Terraform)
-- final production validation and release/documentation review
+- Infrastructure as Code with Terraform
 
 
 ## Deployment
@@ -903,6 +910,10 @@ Benefits:
 
 Production secrets under `/home/deploy/textclf_secrets/` are mutable runtime state and are deliberately independent from Git, Docker images, and deployment synchronization.
 
+The backup/restore helpers and systemd unit files are host-managed operational
+files. They are installed on the production VM and are not currently
+version-controlled in this repository.
+
 Encrypted backups are created with restic and stored in OCI Object Storage with object versioning enabled.
 
 Backup configuration and credentials are stored separately under:
@@ -985,7 +996,7 @@ curl -I https://<DOMAIN>
 Expected result: HTTP/2 200
 
 ```bash
-curl -I http://<DOMAIN>.com
+curl -I http://<DOMAIN>
 ```
 
 Expected result: 
@@ -1120,10 +1131,9 @@ Implemented:
 - daily systemd secret backup
 - immediate post-rotation secret backup
 
-Remaining:
+Optional future extension:
 
-- Infrastructure as Code (Terraform)
-- final production validation and release/documentation review
+- Infrastructure as Code with Terraform
 
 ### Production Deployment
 
@@ -1176,15 +1186,10 @@ Streamlit
    │
    ▼
 FastAPI
-   │
-   ▼
-Metrics Proxy
-   │
-   ▼
-Prometheus
-   │
-   ▼
-Grafana Cloud
+
+Prometheus ──scrape──▶ Metrics Proxy ──authenticated request──▶ FastAPI
+     │
+     └──remote_write──▶ Grafana Cloud dashboards and alerts
 ```
 
 ## Dependency Management
@@ -1247,7 +1252,6 @@ Implemented:
 - daily systemd backup scheduling with retention management
 - immediate backup after successful token rotation
 
-Remaining work:
+Optional future extension:
 
-- Infrastructure as Code (Terraform)
-- final production validation and release/documentation cleanup
+- Infrastructure as Code with Terraform
