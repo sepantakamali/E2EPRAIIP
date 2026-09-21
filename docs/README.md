@@ -13,9 +13,6 @@ This directory contains the detailed engineering documentation.
 - [Observability](observability.md): metrics, dashboards, and alerts
 - [Testing and CI/CD](testing-and-ci.md): quality gates and delivery workflows
 
-For reproducibility limitations and remaining cleanup, see the
-[repository review](repository-review.md).
-
 ## Terminology
 
 - **Artifact:** an immutable joblib file containing the fitted pipeline and build metadata.
@@ -24,7 +21,6 @@ For reproducibility limitations and remaining cleanup, see the
 - **Promotion:** updating `stable` to select an already-created artifact.
 - **Publication:** making an artifact available to API consumers without rewriting it.
 - **Reconciliation:** combining immutable artifact metadata with later valid registry events.
-
 - **Resolution:** turning a selector such as `stable` into the artifact file to load.
 - **Registry overlay:** later release information stored outside the immutable model file.
 - **Split invariants:** required properties of the training/test sets, such as matching text and label counts.

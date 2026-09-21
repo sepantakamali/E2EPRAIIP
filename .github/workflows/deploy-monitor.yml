@@ -8,6 +8,7 @@ on:
     paths:
       - "deploy/docker-compose.monitor.yml"
       - "monitoring/**"
+      - "scripts/generate_prometheus_config.sh"
       - "grafana/**"
       - ".github/workflows/deploy-monitor.yml"
 
@@ -35,7 +36,7 @@ jobs:
           ssh -i ~/.ssh/textclf_deploy \
             -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/monitoring'"
+            "mkdir -p '$DEPLOY_PATH/deploy' '$DEPLOY_PATH/monitoring' '$DEPLOY_PATH/scripts'"
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
@@ -44,9 +45,14 @@ jobs:
 
           rsync -avz \
             -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
-            monitoring/prometheus.yml \
+            monitoring/prometheus.yml.tmpl \
             monitoring/alerts.yml \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/monitoring/"
+
+          rsync -avz \
+            -e "ssh -i ~/.ssh/textclf_deploy -o StrictHostKeyChecking=accept-new" \
+            scripts/generate_prometheus_config.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/scripts/"
 
       - name: Deploy monitoring stack
         uses: appleboy/ssh-action@v1.2.0
@@ -61,9 +67,13 @@ jobs:
 
             echo "Deploying monitoring stack..."
 
+            bash scripts/generate_prometheus_config.sh
+
             docker compose --env-file .env -f deploy/docker-compose.monitor.yml pull
 
-            docker compose --env-file .env -f deploy/docker-compose.monitor.yml up -d
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
+
+            docker compose --env-file .env -f deploy/docker-compose.monitor.yml up -d --force-recreate
 
             docker compose --env-file .env -f deploy/docker-compose.monitor.yml ps
 

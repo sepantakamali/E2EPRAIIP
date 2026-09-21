@@ -56,16 +56,15 @@ JSON inspection; request history; and visible service/model status.
 In production Compose, the API base URL is `http://textclf-api:8000`. In local
 Python development it defaults to `http://localhost:8000`. Displaying this address
 reveals an internal hostname and port, but does not make that port accessible.
-The public UI has no per-user login in the checked-in proxy configuration; its
-server-side token identifies the UI service, not each browser user.
+The public UI uses a server-side service token to call the API. Browser users
+can use the UI without individual accounts.
 
 ## Generated SDK
 
 The FastAPI OpenAPI document is used to generate the Python package under
 `textclf_client/`. The SDK supplies typed endpoint methods and models, while
 `client_demo.py` demonstrates authenticated consumption with its own scoped
-token. The UI uses `requests.Session` directly; the SDK is an optional Python
-integration example, not a requirement for the deployed UI. See [`../textclf_client/README.md`](../textclf_client/README.md).
+token. The UI makes its HTTP calls through `requests.Session`. See [`../textclf_client/README.md`](../textclf_client/README.md).
 
 ## Request example
 

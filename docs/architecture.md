@@ -44,7 +44,7 @@ resolved notifications by email.
 - Application endpoints validate scoped bearer tokens from the mounted registry.
 - `/health` and `/ready` require no API token, but the production public proxy blocks them.
 - The public UI uses a service token; it does not authenticate individual browser users.
-- Metrics proxy credentials and Docker network access restrict scraping; they do not identify a unique Prometheus process.
+- Metrics scraping uses Basic authentication on the private Docker network.
 - Direct API metrics access trusts configured internal IP ranges. Internal HTTP is not encrypted.
 - Runtime secret files are mounted separately from images and source code.
 - Model artifacts are host-mounted so application releases do not rewrite model state.
@@ -53,6 +53,6 @@ resolved notifications by email.
 
 FastAPI publishes an OpenAPI schema. The client-generation workflow converts
 that schema into the `textclf_client` package. `client_demo.py` exercises the
-generated SDK with a separately scoped local client token. The UI continues to
-use `requests.Session`; using the SDK is optional.
+generated SDK with a separate client token. The UI uses `requests.Session`
+for its API calls.
 

@@ -4,9 +4,8 @@ This package is generated from the FastAPI OpenAPI schema. It lets another
 Python application call the existing inference API using request and response
 models. It does not contain the classifier or run an inference server.
 
-The Streamlit UI uses `requests.Session` directly. The SDK is an optional
-integration example; adopting it is useful when several Python consumers need
-the same API contract, but is not required for this small UI.
+Use the SDK to call the API from a Python script or another application. The
+Streamlit UI makes its own HTTP calls through `requests.Session`.
 
 ## Install and run the demo
 
@@ -67,7 +66,7 @@ make sdk
 
 Generation overwrites `textclf_client/`, including this README. Review generated
 changes, restore project-specific documentation, and run the client demo after
-schema changes. The generator is not pinned by the current project configuration.
+schema changes.
 
 Generated endpoint modules offer synchronous and asynchronous calls. The
 `*_detailed` forms return status, headers, raw content, and a parsed response
