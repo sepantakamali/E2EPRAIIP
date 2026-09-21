@@ -58,6 +58,10 @@ The API resolves the selector to one immutable file, verifies registry and
 metadata consistency, and exposes the resolved identity through `/version` and
 prediction responses.
 
+Reconciliation and pointer resolution support this project's release design.
+A service that always loads one fixed model file would not need this full registry
+and promotion workflow.
+
 ## Operational separation
 
 Application images, model artifacts, and mutable secret state have independent

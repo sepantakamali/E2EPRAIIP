@@ -14,12 +14,15 @@ The system was validated through progressively more realistic environments:
 ## Local development
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 make train-save
-make api
+AUTH_ENABLED=false MODEL_POINTER=latest make api
 ```
+
+This example disables authentication only for the loopback-bound development
+API. Use Python 3.11 to match CI; the initial training run downloads the dataset.
 
 Run the UI separately with `make ui`. Configuration examples live in
 `.env.example` and `deploy/.env.example`; real secrets must not be committed.
@@ -34,7 +37,9 @@ production definitions under `deploy/`:
 - `deploy/token-principals.yml`
 
 Images are published to GHCR for `linux/amd64` and `linux/arm64` with `latest`,
-`main`, and commit-specific tags. Production model artifacts are mounted from
+`main`, and commit-specific tags. These are CPU architectures: AMD64 covers Intel/AMD x86-64 CPUs, while ARM64
+covers ARM CPUs, including Apple Silicon through Docker. Ubuntu can run on either.
+Production model artifacts are mounted from
 the host rather than baked into the image.
 
 Common local stack commands are:
@@ -46,6 +51,8 @@ make monitor-up
 make monitor-logs
 ```
 
+These Make targets use the root Compose files, not the production files under
+`deploy/`. They need their own secrets and environment configuration.
 Corresponding `*-down` targets stop each stack.
 
 ## Production layout
@@ -75,9 +82,11 @@ curl -fsS https://<DOMAIN>/_stcore/health
 curl -fsS http://127.0.0.1:9090/-/ready
 ```
 
-Direct host access to the API's port is intentionally unavailable when the port
-is not published. Internal API health can instead be checked from the container
-or through the deployed client/proxy path.
+The API has no published host port, so `localhost:8000` is not its production
+address. Check it from inside its container, or use the public UI to make a
+prediction through Streamlit's internal API connection. `/_stcore/health` checks
+Streamlit only; `/-/ready` on port 9090 checks Prometheus readiness, not scrape
+success. Inspect Prometheus targets to confirm metrics collection.
 
 The following sanitized runtime capture records the OCI VM platform, host
 capacity, container health, and per-container resource use without exposing

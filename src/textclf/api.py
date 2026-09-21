@@ -57,14 +57,14 @@ from textclf.token_audit import (
     utc_now,
 )
 
-PREDICTIONS = Counter("prediction_requests_total", "Total prediction requests")
+PREDICTIONS = Counter("prediction_requests_total", "Prediction calls entering the handler, including failed calls")
 PREDICTION_LATENCY = Histogram(
     "prediction_latency_seconds",
     "Prediction latency (seconds)",
     # Cover both fast responses and slower production inference calls.
     buckets=(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
-PREDICTION_ERRORS = Counter("prediction_request_errors_total", "Total prediction errors")
+PREDICTION_ERRORS = Counter("prediction_request_errors_total", "Failed prediction calls within the handler")
 
 # Optional: Redis-backed limits for distributed deployments
 SLOWAPI_STORAGE_URI = os.getenv("SLOWAPI_STORAGE_URI")  # e.g., "redis://redis:6379/0"
@@ -795,13 +795,13 @@ def predict(
     principal: Principal = Depends(require_scopes("predict:run")),
 ) -> PredictResponse:
     start = time.perf_counter()
-    # Accumulate all errors together--server/client... enough for now.
+    # Count calls admitted by authentication and request-schema validation.
+    PREDICTIONS.inc()
     try:
         # Resolve desired model and (re)load if needed
         try:
             desired_path, _ = _resolve_path(model, model_path)
         except FileNotFoundError as e:
-            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=404, detail=str(e))
 
         state = STATE["state"]
@@ -809,19 +809,15 @@ def predict(
             try:
                 _load_into_state(model, model_path)
             except FileNotFoundError as e:
-                PREDICTION_ERRORS.inc()
                 raise HTTPException(status_code=404, detail=str(e))
 
         # Validate inputs
         if not payload.texts:
-            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=422, detail="No texts provided.")
         if len(payload.texts) > MAX_TEXTS:
-            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Too many texts; max is {MAX_TEXTS}.")
         too_long = [text for text in payload.texts if len(text) > MAX_TEXT_LEN]
         if too_long:
-            PREDICTION_ERRORS.inc()
             raise HTTPException(status_code=413, detail=f"Some texts exceed {MAX_TEXT_LEN} characters.")
 
         # Predict
@@ -833,8 +829,6 @@ def predict(
             else None
         )
 
-        # Record successful prediction
-        PREDICTIONS.inc()
         log.info(
             "Prediction succeeded token_id=%s client_id=%s texts=%s request_id=%s",
             principal.token_id,

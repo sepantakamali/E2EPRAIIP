@@ -4,15 +4,16 @@
 
 ```mermaid
 flowchart TD
-    User --> UI[Streamlit UI]
+    User --> Web[Public HTTPS Nginx]
+    Web --> UI[Streamlit UI]
     UI -->|Bearer token| API[FastAPI API]
     SDK[Generated Python SDK] -->|Bearer token| API
     API --> Resolve[Artifact Resolution]
     Resolve --> Files[Immutable Artifact Files]
     Resolve --> Pointers[latest and stable Pointers]
     Resolve --> Registry[Append-only Registry Events]
-    Prometheus -->|Scrape| Proxy[Metrics Proxy]
-    Proxy -->|Authenticated request| API
+    Prometheus -->|HTTP Basic authentication| Proxy[Metrics Proxy]
+    Proxy -->|Internal network request| API
     Prometheus -->|remote_write| Grafana[Grafana Cloud]
     Grafana --> Alerts[Managed Alerts]
     Alerts --> Email[Email Contact Point]
@@ -32,7 +33,7 @@ metrics endpoint remain on the Docker network.
 
 ## Monitoring stack
 
-Prometheus scrapes the metrics proxy, evaluates local Prometheus rules, and
+Prometheus scrapes the metrics proxy, evaluates rules on the VM, and
 remote-writes time series to Grafana Cloud. Grafana dashboards and managed alert
 rules consume the remote metrics. The `E2EPRAIIP` contact point sends firing and
 resolved notifications by email.
@@ -41,7 +42,10 @@ resolved notifications by email.
 
 - Browser users interact with the Streamlit client rather than receiving its service token.
 - Application endpoints validate scoped bearer tokens from the mounted registry.
-- `/health` and `/ready` are public; detailed health and metrics remain internal.
+- `/health` and `/ready` require no API token, but the production public proxy blocks them.
+- The public UI uses a service token; it does not authenticate individual browser users.
+- Metrics proxy credentials and Docker network access restrict scraping; they do not identify a unique Prometheus process.
+- Direct API metrics access trusts configured internal IP ranges. Internal HTTP is not encrypted.
 - Runtime secret files are mounted separately from images and source code.
 - Model artifacts are host-mounted so application releases do not rewrite model state.
 
@@ -49,5 +53,6 @@ resolved notifications by email.
 
 FastAPI publishes an OpenAPI schema. The client-generation workflow converts
 that schema into the `textclf_client` package. `client_demo.py` exercises the
-generated SDK with a separately scoped local client token.
+generated SDK with a separately scoped local client token. The UI continues to
+use `requests.Session`; using the SDK is optional.
 

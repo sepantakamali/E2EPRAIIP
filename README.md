@@ -84,7 +84,7 @@ Operational configuration also has a focused guide in
 
 ## API Surface
 
-Public operational endpoints:
+Operational endpoints requiring no API token (not exposed by the production web proxy):
 
 - `GET /health`
 - `GET /ready`
@@ -109,11 +109,11 @@ Application scopes are `predict:run`, `models:read`, `version:read`, and
 ### Local Python
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 make train-save
-make api
+AUTH_ENABLED=false MODEL_POINTER=latest make api
 ```
 
 In another terminal:
@@ -123,14 +123,19 @@ source .venv/bin/activate
 make ui
 ```
 
+This loopback-only example disables authentication for local learning. Production
+uses mounted token files and keeps authentication enabled. The first training run
+downloads the dataset. Python 3.11 is the version used in CI.
+
 ### Docker Compose
 
 ```bash
-cp .env.example .env
-docker compose up --build
+AUTH_ENABLED=false docker compose up --build
 ```
 
-The basic development stack starts the API. The product and monitoring stacks
+Train an artifact first using the Python commands above. The basic development
+stack starts the API on the host loopback interface with authentication disabled
+only for this example. The product and monitoring stacks
 use the focused Compose definitions under `deploy/`.
 
 ## Quality Checks
@@ -153,7 +158,7 @@ artifacts/             Immutable model files, registry log, and pointers
 deploy/                Product and monitoring Compose definitions
 docs/                  Focused project documentation and screenshots
 grafana/               Dashboard JSON and managed alert-rule export
-monitoring/            Prometheus configuration and local alert rules
+monitoring/            Prometheus configuration and alert rules
 nginx/                 UI and authenticated metrics proxy configuration
 scripts/               Model, token, monitoring, and Grafana utilities
 src/textclf/           Data, model, artifact, registry, API, and settings code
@@ -171,16 +176,10 @@ artifacts, Nginx with Let's Encrypt HTTPS, Prometheus remote write to Grafana
 Cloud, managed alerts with email delivery, and encrypted secret backups stored
 off the VM.
 
-Infrastructure as Code is a possible future extension. The current deployment
-and operational procedures are documented, but host-managed backup scripts,
-systemd units, runtime secrets, and Grafana contact-point credentials are not
-version-controlled.
-
 ## Project Purpose
 
 This repository began as implementation practice for developing production AI
 engineering skills. It demonstrates how model code, runtime contracts,
 deployment, security, monitoring, and recovery fit together in a working
 system. The same engineering principles can be transferred to more specialised
-models without claiming that this repository is a generic multi-workload
-serving framework.
+models/projects.

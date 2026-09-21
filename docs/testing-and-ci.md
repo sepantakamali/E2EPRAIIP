@@ -21,12 +21,12 @@ repository's production-like artifact directory.
 
 The suite covers:
 
-- dataset loading and split invariants
+- non-empty training/test splits, matching text/label counts, and binary labels
 - model training and prediction
-- API smoke paths and authentication behaviour
+- API smoke paths, authentication behaviour, and prediction counter/latency semantics
 - artifact save, load, identity, and immutability
 - `latest` and `stable` promotion
-- publication state and external registry overlays
+- publication state stored outside the artifact and combined with its metadata
 - release-tag uniqueness and controlled version jumps
 - malformed and legacy registry compatibility
 - token issuance, replacement, auditing, and Prometheus collection

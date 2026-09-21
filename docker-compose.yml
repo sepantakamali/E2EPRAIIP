@@ -1,11 +1,11 @@
-version: "3.9"
 services:
   api:
     build: .
     image: textclf-api:latest           # build first: docker build -t textclf-api .
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
       MODEL_POINTER: "latest"
       LOG_LEVEL: "INFO"
       MAX_TEXTS: "64"
